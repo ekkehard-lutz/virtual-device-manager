@@ -1,15 +1,15 @@
 """Tests for the Virtual Device Manager source manager."""
-import pytest
 import asyncio
-
-from custom_components.virtual_device.aggregator import SourceValue
-from custom_components.virtual_device.source_manager import SourceManager
 from unittest.mock import AsyncMock, MagicMock
 
+import pytest
+
+from custom_components.virtual_device.aggregator import SourceValue
 from custom_components.virtual_device.models import (
     VirtualDevice,
     VirtualEntity,
 )
+from custom_components.virtual_device.source_manager import SourceManager
 
 
 def test_empty_source_manager() -> None:

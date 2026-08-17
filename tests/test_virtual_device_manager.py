@@ -11,10 +11,10 @@ from custom_components.virtual_device.models import (
 from custom_components.virtual_device.virtual_device_manager import (
     async_add_virtual_entity,
     async_create_virtual_device,
-    async_delete_virtual_entity,
     async_delete_virtual_device,
-    async_update_virtual_entity,
+    async_delete_virtual_entity,
     async_update_virtual_device,
+    async_update_virtual_entity,
 )
 
 

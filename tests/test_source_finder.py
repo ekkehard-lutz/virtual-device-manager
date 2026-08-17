@@ -2,13 +2,13 @@
 
 from unittest.mock import MagicMock
 
+from custom_components.virtual_device.aggregator import SourceValue
 from custom_components.virtual_device.source_finder import (
     get_entities_for_label,
     get_sensor_entities_for_label,
     get_source_entities,
     get_source_values,
 )
-from custom_components.virtual_device.aggregator import SourceValue
 
 
 def test_get_entities_for_label(monkeypatch) -> None:

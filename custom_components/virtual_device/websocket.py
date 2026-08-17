@@ -3,6 +3,7 @@
 from homeassistant.components import websocket_api
 from homeassistant.core import HomeAssistant
 
+from .source_manager import SourceManager
 from .storage import VirtualDeviceStorage
 from .virtual_device_manager import (
     async_add_virtual_entity,
@@ -11,7 +12,6 @@ from .virtual_device_manager import (
     async_update_virtual_device,
     async_update_virtual_entity,
 )
-from .source_manager import SourceManager
 
 
 def _serialize_virtual_entity(entity) -> dict:

@@ -4,7 +4,6 @@ from homeassistant.core import HomeAssistant
 
 from .models import (
     VirtualDevice,
-    VirtualEntity,
 )
 from .source_manager import SourceManager
 from .storage import VirtualDeviceStorage

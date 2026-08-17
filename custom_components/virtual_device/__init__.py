@@ -1,12 +1,13 @@
 """The Virtual Device Manager integration."""
 
 from __future__ import annotations
+
 from pathlib import Path
 
+from homeassistant.components import panel_custom
 from homeassistant.components.http import StaticPathConfig
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
-from homeassistant.components import panel_custom
 
 from .const import (
     DOMAIN,
@@ -16,7 +17,6 @@ from .source_manager import SourceManager
 from .storage import VirtualDeviceStorage
 from .virtual_device_services import async_register_virtual_device_services
 from .websocket import async_register_websocket_commands
-
 
 type VirtualDeviceConfigEntry = ConfigEntry
 

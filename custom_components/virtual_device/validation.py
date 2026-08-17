@@ -4,13 +4,13 @@ from homeassistant.components.sensor.const import (
     DEVICE_CLASS_UNITS,
     UNIT_CONVERTERS,
 )
+
 from .const import AGGREGATIONS
+from .models import VirtualDevice, VirtualEntity
+
 
 class ValidationError(ValueError):
     """Raised when Virtual Device Manager configuration is invalid."""
-
-from .models import VirtualDevice, VirtualEntity
-
 
 def validate_virtual_entity(entity: VirtualEntity) -> None:
     """Validate a virtual entity configuration."""

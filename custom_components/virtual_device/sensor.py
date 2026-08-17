@@ -1,26 +1,18 @@
+from collections.abc import Mapping
+
 from homeassistant.components.sensor import SensorEntity
-from homeassistant.components.sensor.const import SensorDeviceClass
 from homeassistant.config_entries import ConfigEntry
-from homeassistant.core import (
-    HomeAssistant,
-    Event
-)
-from homeassistant.helpers.entity import DeviceInfo
 from homeassistant.const import (
     STATE_UNAVAILABLE,
     STATE_UNKNOWN,
 )
-from homeassistant.core import State
-
-from collections.abc import Mapping
-
-from .source_manager import SourceManager
-
-from .const import DOMAIN
-
-from .models import VirtualDevice, VirtualEntity
+from homeassistant.core import Event, HomeAssistant, State
+from homeassistant.helpers.entity import DeviceInfo
 
 from .aggregator import SourceValue, aggregate_values
+from .const import DOMAIN
+from .models import VirtualDevice, VirtualEntity
+from .source_manager import SourceManager
 
 
 class VirtualDeviceSensor(SensorEntity):

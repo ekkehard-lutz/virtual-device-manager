@@ -1,13 +1,13 @@
 """Tests for Virtual Device Manager virtual sensors."""
 
-from homeassistant.helpers.device_registry import DeviceInfo
-from homeassistant.core import State
+from unittest.mock import MagicMock
+
+import pytest
 from homeassistant.const import (
     STATE_UNAVAILABLE,
-    STATE_UNKNOWN,
 )
+from homeassistant.core import State
 
-from custom_components.virtual_device.source_manager import SourceManager
 from custom_components.virtual_device.aggregator import SourceValue
 from custom_components.virtual_device.const import DOMAIN
 from custom_components.virtual_device.models import (
@@ -17,16 +17,12 @@ from custom_components.virtual_device.models import (
 from custom_components.virtual_device.sensor import (
     VirtualDeviceSensor,
     async_setup_entry,
-    update_sensors_for_source_change,
+    async_unload_entry,
     handle_state_changed,
     source_value_from_state,
-    async_unload_entry,
+    update_sensors_for_source_change,
 )
-
-from unittest.mock import AsyncMock, MagicMock
-
-import pytest
-
+from custom_components.virtual_device.source_manager import SourceManager
 
 
 def _create_sensor() -> VirtualDeviceSensor:

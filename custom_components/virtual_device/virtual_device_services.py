@@ -1,17 +1,16 @@
 """Home Assistant services for virtual devices."""
 
 import voluptuous as vol
-
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers import service
 
+from .const import DOMAIN
 from .storage import VirtualDeviceStorage
 from .virtual_device_manager import (
     async_create_virtual_device,
-    async_update_virtual_device,
     async_delete_virtual_device,
+    async_update_virtual_device,
 )
-from .const import DOMAIN
 
 
 async def async_register_virtual_device_services(

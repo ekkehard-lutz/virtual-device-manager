@@ -5,7 +5,6 @@ from homeassistant.helpers import device_registry, label_registry
 
 from .models import VirtualDevice, VirtualEntity
 
-
 SUPPORTED_AGGREGATIONS = {
     "sum",
     "avg",

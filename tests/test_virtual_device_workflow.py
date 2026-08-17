@@ -196,7 +196,9 @@ def test_physical_device_name_conflict_is_not_reported_for_different_name() -> N
         )
 
 
-def test_create_virtual_device_requires_confirmation_for_physical_name_conflict() -> None:
+def test_create_virtual_device_requires_confirmation_for_physical_name_conflict() -> (
+    None
+):
     """Require confirmation when a physical device has the same name."""
     hass = MagicMock()
 
@@ -403,7 +405,9 @@ def test_update_virtual_device_rejects_other_virtual_device_name() -> None:
             )
 
 
-def test_update_virtual_device_requires_confirmation_for_physical_name_conflict() -> None:
+def test_update_virtual_device_requires_confirmation_for_physical_name_conflict() -> (
+    None
+):
     """Require confirmation when renaming to a physical device name."""
     hass = MagicMock()
 
@@ -590,9 +594,7 @@ def test_create_virtual_entity_uses_base_id() -> None:
         unit="W",
     )
 
-    assert entity.id == (
-        "virtual_beleuchtung_power"
-    )
+    assert entity.id == ("virtual_beleuchtung_power")
     assert entity.device_class == "power"
     assert entity.aggregation == "sum"
     assert entity.unit == "W"
@@ -622,9 +624,7 @@ def test_create_virtual_entity_uses_suffix() -> None:
         unit="W",
     )
 
-    assert entity.id == (
-        "virtual_beleuchtung_power_1"
-    )
+    assert entity.id == ("virtual_beleuchtung_power_1")
 
 
 def test_create_virtual_entity_uses_base_id_for_different_class() -> None:
@@ -650,9 +650,7 @@ def test_create_virtual_entity_uses_base_id_for_different_class() -> None:
         unit="kWh",
     )
 
-    assert entity.id == (
-        "virtual_beleuchtung_energy"
-    )
+    assert entity.id == ("virtual_beleuchtung_energy")
 
 
 def test_create_virtual_entity_uses_next_free_suffix() -> None:
@@ -684,9 +682,7 @@ def test_create_virtual_entity_uses_next_free_suffix() -> None:
         unit="W",
     )
 
-    assert entity.id == (
-        "virtual_beleuchtung_power_2"
-    )
+    assert entity.id == ("virtual_beleuchtung_power_2")
 
 
 def test_create_virtual_entity_keeps_explicit_name() -> None:
@@ -743,9 +739,7 @@ def test_add_virtual_entity_adds_entity() -> None:
     )
 
     assert len(updated.entities) == 1
-    assert updated.entities[0].id == (
-        "virtual_beleuchtung_power"
-    )
+    assert updated.entities[0].id == ("virtual_beleuchtung_power")
 
 
 def test_add_virtual_entity_keeps_existing_entities() -> None:
@@ -823,9 +817,7 @@ def test_update_virtual_entity_changes_values() -> None:
 
     updated_entity = updated.entities[0]
 
-    assert updated_entity.id == (
-        "virtual_beleuchtung_power"
-    )
+    assert updated_entity.id == ("virtual_beleuchtung_power")
     assert updated_entity.device_class == "power"
     assert updated_entity.aggregation == "avg"
     assert updated_entity.unit == "W"
@@ -856,9 +848,7 @@ def test_update_virtual_entity_keeps_id() -> None:
         unit="kW",
     )
 
-    assert updated.entities[0].id == (
-        "virtual_beleuchtung_power_1"
-    )
+    assert updated.entities[0].id == ("virtual_beleuchtung_power_1")
 
 
 def test_update_virtual_entity_keeps_unspecified_values() -> None:
@@ -1063,4 +1053,3 @@ def test_delete_virtual_entity_does_not_modify_original() -> None:
     assert device.entities == [entity]
     assert updated.entities == []
     assert updated is not device
-

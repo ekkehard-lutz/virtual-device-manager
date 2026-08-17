@@ -3,7 +3,6 @@
 from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
-
 import voluptuous as vol
 
 from custom_components.virtual_device.virtual_device_services import (

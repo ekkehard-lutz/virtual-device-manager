@@ -10,7 +10,6 @@ from .aggregator import SourceValue
 from .models import VirtualDevice
 from .source_finder import get_source_entities, get_source_values
 
-
 DEFAULT_RECONCILIATION_INTERVAL = 300
 
 

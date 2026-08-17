@@ -1,5 +1,11 @@
 """Tests for Virtual Device Manager validation."""
 
+import pytest
+
+from custom_components.virtual_device.models import (
+    VirtualDevice,
+    VirtualEntity,
+)
 from custom_components.virtual_device.validation import (
     ValidationError,
     can_convert_unit,
@@ -8,11 +14,6 @@ from custom_components.virtual_device.validation import (
     validate_virtual_device,
     validate_virtual_entity,
 )
-from custom_components.virtual_device.models import (
-    VirtualDevice,
-    VirtualEntity,
-)
-import pytest
 
 
 def test_valid_power_unit() -> None:
