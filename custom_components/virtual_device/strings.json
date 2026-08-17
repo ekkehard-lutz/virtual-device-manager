@@ -1,0 +1,10 @@
+{
+  "config": {
+    "step": {
+      "user": {
+        "title": "Virtual Device Manager",
+        "description": "Set up the Virtual Device Manager integration."
+      }
+    }
+  }
+}

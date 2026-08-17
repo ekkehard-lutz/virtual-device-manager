@@ -1,0 +1,17 @@
+{
+  "domain": "virtual_device",
+  "name": "Virtual Device Manager",
+  "version": "0.1.0",
+  "documentation": "https://github.com/ekkehard-lutz/virtual-device-manager",
+  "issue_tracker": "https://github.com/ekkehard-lutz/virtual-device-manager/issues",
+  "codeowners": [
+    "@ekkehard-lutz"
+  ],
+  "config_flow": true,
+  "single_config_entry": true,
+  "integration_type": "hub",
+  "iot_class": "calculated",
+  "requirements": [],
+  "dependencies": [],
+  "after_dependencies": []
+}

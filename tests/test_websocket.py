@@ -1,0 +1,543 @@
+"""Tests for the Virtual Device Manager WebSocket API."""
+
+from unittest.mock import AsyncMock, MagicMock, patch
+
+import pytest
+
+from custom_components.virtual_device.models import (
+    VirtualDevice,
+    VirtualEntity,
+)
+from custom_components.virtual_device.websocket import (
+    _serialize_virtual_devices,
+    async_register_websocket_commands,
+)
+
+
+@pytest.mark.asyncio
+async def test_get_virtual_devices_websocket_command_is_registered() -> None:
+    """Register the get_virtual_devices WebSocket command."""
+    hass = MagicMock()
+    storage = MagicMock()
+    source_manager = MagicMock()
+
+    with patch(
+        "custom_components.virtual_device.websocket.websocket_api.async_register_command"
+    ) as register_mock:
+        await async_register_websocket_commands(hass, storage, source_manager)
+
+    registered_handlers = [
+        call.args[1]
+        for call in register_mock.call_args_list
+    ]
+
+    assert any(
+        handler.__name__ == "handle_get_virtual_devices"
+        for handler in registered_handlers
+    )
+
+
+def test_serialize_virtual_devices() -> None:
+    """Serialize stored virtual devices for the frontend."""
+    storage = MagicMock()
+
+    entity = MagicMock()
+    entity.id = "entity-energie"
+    entity.device_class = "energy"
+    entity.aggregation = "sum"
+    entity.unit = "kWh"
+    entity.name = "Gesamtenergie"
+
+    device = MagicMock()
+    device.id = "virtual-energie"
+    device.label_ref = "label-id-energie"
+    device.name = "Haus Energie"
+    device.entities = [entity]
+
+    storage.get_virtual_devices.return_value = [device]
+
+    result = _serialize_virtual_devices(storage)
+
+    assert result == [
+        {
+            "id": "virtual-energie",
+            "label_ref": "label-id-energie",
+            "name": "Haus Energie",
+            "entities": [
+                {
+                    "id": "entity-energie",
+                    "device_class": "energy",
+                    "aggregation": "sum",
+                    "unit": "kWh",
+                    "name": "Gesamtenergie",
+                }
+            ],
+        }
+    ]
+
+
+@pytest.mark.asyncio
+async def test_delete_virtual_device_websocket_command_is_registered() -> None:
+    """Register the delete_virtual_device WebSocket command."""
+    hass = MagicMock()
+    storage = MagicMock()
+    source_manager = MagicMock()
+
+    with patch(
+        "custom_components.virtual_device.websocket.websocket_api.async_register_command"
+    ) as register_mock:
+        await async_register_websocket_commands(hass, storage, source_manager)
+
+    registered_handlers = [
+        call.args[1]
+        for call in register_mock.call_args_list
+    ]
+
+    assert any(
+        handler.__name__ == "handle_delete_virtual_device"
+        for handler in registered_handlers
+    )
+
+
+@pytest.mark.asyncio
+async def test_delete_virtual_device_websocket_deletes_device() -> None:
+    """Delete a virtual device through the WebSocket."""
+    hass = MagicMock()
+    storage = MagicMock()
+    connection = MagicMock()
+    source_manager = MagicMock()
+
+    with patch(
+        "custom_components.virtual_device.websocket.websocket_api.async_register_command"
+    ) as register_mock:
+        await async_register_websocket_commands(hass, storage, source_manager)
+
+    handler = next(
+        handler
+        for handler in (
+            call.args[1]
+            for call in register_mock.call_args_list
+        )
+        if handler.__name__ == "handle_delete_virtual_device"
+    )
+
+    with patch(
+        "custom_components.virtual_device.websocket.async_delete_virtual_device",
+        new_callable=AsyncMock,
+    ) as delete_mock:
+        await handler.__wrapped__(
+            hass=hass,
+            connection=connection,
+            msg={
+                "id": 42,
+                "device_id": "virtual-energie",
+            },
+        )
+
+    delete_mock.assert_awaited_once_with(
+        hass=hass,
+        storage=storage,
+        device_id="virtual-energie",
+    )
+
+    connection.send_result.assert_called_once_with(
+        42,
+        {},
+    )
+
+
+@pytest.mark.asyncio
+async def test_update_virtual_device_websocket_command_is_registered() -> None:
+    """Register the update_virtual_device WebSocket command."""
+    hass = MagicMock()
+    storage = MagicMock()
+    source_manager = MagicMock()
+
+    with patch(
+        "custom_components.virtual_device.websocket.websocket_api.async_register_command"
+    ) as register_mock:
+        await async_register_websocket_commands(hass, storage, source_manager)
+
+    registered_handlers = [
+        call.args[1]
+        for call in register_mock.call_args_list
+    ]
+
+    assert any(
+        handler.__name__ == "handle_update_virtual_device"
+        for handler in registered_handlers
+    )
+
+
+@pytest.mark.asyncio
+async def test_update_virtual_device_websocket_updates_device() -> None:
+    """Update a virtual device through the WebSocket."""
+    hass = MagicMock()
+    storage = MagicMock()
+    connection = MagicMock()
+    source_manager = MagicMock()
+
+    with patch(
+        "custom_components.virtual_device.websocket.websocket_api.async_register_command"
+    ) as register_mock:
+        await async_register_websocket_commands(hass, storage, source_manager)
+
+    handler = next(
+        handler
+        for handler in (
+            call.args[1]
+            for call in register_mock.call_args_list
+        )
+        if handler.__name__ == "handle_update_virtual_device"
+    )
+
+    updated_device = VirtualDevice(
+        id="virtual-energie",
+        label_ref="label-id-heizung",
+        name="Haus Heizung",
+    )
+
+    with patch(
+        "custom_components.virtual_device.websocket.async_update_virtual_device",
+        new_callable=AsyncMock,
+        return_value=updated_device,
+    ) as update_mock:
+        await handler.__wrapped__(
+            hass=hass,
+            connection=connection,
+            msg={
+                "id": 42,
+                "device_id": "virtual-energie",
+                "name": "Haus Heizung",
+                "label_ref": "label-id-heizung",
+                "confirm_physical_name_conflict": False,
+            },
+        )
+
+    update_mock.assert_awaited_once_with(
+        hass=hass,
+        storage=storage,
+        device_id="virtual-energie",
+        name="Haus Heizung",
+        label_ref="label-id-heizung",
+        confirm_physical_name_conflict=False,
+    )
+
+    connection.send_result.assert_called_once_with(
+        42,
+        {
+            "device": {
+                "id": "virtual-energie",
+                "label_ref": "label-id-heizung",
+                "name": "Haus Heizung",
+                "entities": [],
+            }
+        },
+    )
+
+
+@pytest.mark.asyncio
+async def test_add_virtual_entity_websocket_command_is_registered() -> None:
+    """Register the add_virtual_entity WebSocket command."""
+    hass = MagicMock()
+    storage = MagicMock()
+    source_manager = MagicMock()
+
+    with patch(
+        "custom_components.virtual_device.websocket.websocket_api.async_register_command"
+    ) as register_mock:
+        await async_register_websocket_commands(hass, storage, source_manager)
+
+    registered_handlers = [
+        call.args[1]
+        for call in register_mock.call_args_list
+    ]
+
+    assert any(
+        handler.__name__ == "handle_add_virtual_entity"
+        for handler in registered_handlers
+    )
+
+
+@pytest.mark.asyncio
+async def test_add_virtual_entity_websocket_adds_entity() -> None:
+    """Add a virtual entity through the WebSocket."""
+    hass = MagicMock()
+    storage = MagicMock()
+    connection = MagicMock()
+    source_manager = MagicMock()
+
+    with patch(
+        "custom_components.virtual_device.websocket.websocket_api.async_register_command"
+    ) as register_mock:
+        await async_register_websocket_commands(hass, storage, source_manager)
+
+    handler = next(
+        handler
+        for handler in (
+            call.args[1]
+            for call in register_mock.call_args_list
+        )
+        if handler.__name__ == "handle_add_virtual_entity"
+    )
+
+    updated_device = VirtualDevice(
+        id="virtual-energie",
+        label_ref="label-id-energie",
+        name="Haus Energie",
+        entities=[
+            VirtualEntity(
+                id="virtual-energie_power",
+                device_class="power",
+                aggregation="sum",
+                unit="W",
+                name="Gesamtleistung",
+            ),
+        ],
+    )
+
+    with patch(
+        "custom_components.virtual_device.websocket.async_add_virtual_entity",
+        new_callable=AsyncMock,
+        return_value=updated_device,
+    ) as add_mock:
+        await handler.__wrapped__(
+            hass=hass,
+            connection=connection,
+            msg={
+                "id": 42,
+                "device_id": "virtual-energie",
+                "device_class": "power",
+                "aggregation": "sum",
+                "unit": "W",
+                "name": "Gesamtleistung",
+            },
+        )
+
+    add_mock.assert_awaited_once_with(
+        hass=hass,
+        storage=storage,
+        source_manager=source_manager,
+        device_id="virtual-energie",
+        device_class="power",
+        aggregation="sum",
+        unit="W",
+        name="Gesamtleistung",
+    )
+
+    connection.send_result.assert_called_once_with(
+        42,
+        {
+            "device": {
+                "id": "virtual-energie",
+                "label_ref": "label-id-energie",
+                "name": "Haus Energie",
+                "entities": [
+                    {
+                        "id": "virtual-energie_power",
+                        "device_class": "power",
+                        "aggregation": "sum",
+                        "unit": "W",
+                        "name": "Gesamtleistung",
+                    }
+                ],
+            }
+        },
+    )
+
+
+@pytest.mark.asyncio
+async def test_update_virtual_entity_websocket_command_is_registered() -> None:
+    """Register the update_virtual_entity WebSocket command."""
+    hass = MagicMock()
+    storage = MagicMock()
+    source_manager = MagicMock()
+
+    with patch(
+        "custom_components.virtual_device.websocket.websocket_api.async_register_command"
+    ) as register_mock:
+        await async_register_websocket_commands(hass, storage, source_manager)
+
+    registered_handlers = [
+        call.args[1]
+        for call in register_mock.call_args_list
+    ]
+
+    assert any(
+        handler.__name__ == "handle_update_virtual_entity"
+        for handler in registered_handlers
+    )
+
+
+@pytest.mark.asyncio
+async def test_update_virtual_entity_websocket_updates_entity() -> None:
+    """Update a virtual entity through the WebSocket."""
+    hass = MagicMock()
+    storage = MagicMock()
+    connection = MagicMock()
+    source_manager = MagicMock()
+
+    with patch(
+        "custom_components.virtual_device.websocket.websocket_api.async_register_command"
+    ) as register_mock:
+        await async_register_websocket_commands(hass, storage, source_manager)
+
+    handler = next(
+        handler
+        for handler in (
+            call.args[1]
+            for call in register_mock.call_args_list
+        )
+        if handler.__name__ == "handle_update_virtual_entity"
+    )
+
+    updated_device = VirtualDevice(
+        id="virtual-energie",
+        label_ref="label-id-energie",
+        name="Haus Energie",
+        entities=[
+            VirtualEntity(
+                id="virtual-energie_power",
+                device_class="power",
+                aggregation="avg",
+                unit="W",
+                name="Durchschnittsleistung",
+            ),
+        ],
+    )
+
+    with patch(
+        "custom_components.virtual_device.websocket.async_update_virtual_entity",
+        new_callable=AsyncMock,
+        return_value=updated_device,
+    ) as update_mock:
+        await handler.__wrapped__(
+            hass=hass,
+            connection=connection,
+            msg={
+                "id": 42,
+                "device_id": "virtual-energie",
+                "entity_id": "virtual-energie_power",
+                "aggregation": "avg",
+                "name": "Durchschnittsleistung",
+            },
+        )
+
+    update_mock.assert_awaited_once_with(
+        hass=hass,
+        storage=storage,
+        source_manager=source_manager,
+        device_id="virtual-energie",
+        entity_id="virtual-energie_power",
+        device_class=None,
+        aggregation="avg",
+        unit=None,
+        name="Durchschnittsleistung",
+    )
+
+    connection.send_result.assert_called_once_with(
+        42,
+        {
+            "device": {
+                "id": "virtual-energie",
+                "label_ref": "label-id-energie",
+                "name": "Haus Energie",
+                "entities": [
+                    {
+                        "id": "virtual-energie_power",
+                        "device_class": "power",
+                        "aggregation": "avg",
+                        "unit": "W",
+                        "name": "Durchschnittsleistung",
+                    }
+                ],
+            }
+        },
+    )
+
+
+@pytest.mark.asyncio
+async def test_delete_virtual_entity_websocket_command_is_registered() -> None:
+    """Register the delete_virtual_entity WebSocket command."""
+    hass = MagicMock()
+    storage = MagicMock()
+    source_manager = MagicMock()
+
+    with patch(
+        "custom_components.virtual_device.websocket.websocket_api.async_register_command"
+    ) as register_mock:
+        await async_register_websocket_commands(hass, storage, source_manager)
+
+    registered_handlers = [
+        call.args[1]
+        for call in register_mock.call_args_list
+    ]
+
+    assert any(
+        handler.__name__ == "handle_delete_virtual_entity"
+        for handler in registered_handlers
+    )
+
+
+@pytest.mark.asyncio
+async def test_delete_virtual_entity_websocket_deletes_entity() -> None:
+    """Delete a virtual entity through the WebSocket."""
+    hass = MagicMock()
+    storage = MagicMock()
+    connection = MagicMock()
+    source_manager = MagicMock()
+
+    with patch(
+        "custom_components.virtual_device.websocket.websocket_api.async_register_command"
+    ) as register_mock:
+        await async_register_websocket_commands(hass, storage, source_manager)
+
+    handler = next(
+        handler
+        for handler in (
+            call.args[1]
+            for call in register_mock.call_args_list
+        )
+        if handler.__name__ == "handle_delete_virtual_entity"
+    )
+
+    updated_device = VirtualDevice(
+        id="virtual-energie",
+        label_ref="label-id-energie",
+        name="Haus Energie",
+    )
+
+    with patch(
+        "custom_components.virtual_device.websocket.async_delete_virtual_entity",
+        new_callable=AsyncMock,
+        return_value=updated_device,
+    ) as delete_mock:
+        await handler.__wrapped__(
+            hass=hass,
+            connection=connection,
+            msg={
+                "id": 42,
+                "device_id": "virtual-energie",
+                "entity_id": "virtual-energie_power",
+            },
+        )
+
+    delete_mock.assert_awaited_once_with(
+        hass=hass,
+        storage=storage,
+        source_manager=source_manager,
+        device_id="virtual-energie",
+        entity_id="virtual-energie_power",
+    )
+
+    connection.send_result.assert_called_once_with(
+        42,
+        {
+            "device": {
+                "id": "virtual-energie",
+                "label_ref": "label-id-energie",
+                "name": "Haus Energie",
+                "entities": [],
+            }
+        },
+    )
