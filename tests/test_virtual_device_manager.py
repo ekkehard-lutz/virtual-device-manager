@@ -218,6 +218,7 @@ async def test_add_virtual_entity_saves_updated_device() -> None:
     storage.async_save_virtual_device = AsyncMock()
 
     source_manager = MagicMock()
+    sensor_manager = MagicMock()
 
     with patch(
         "custom_components.virtual_device.virtual_device_manager.add_virtual_entity",
@@ -227,6 +228,7 @@ async def test_add_virtual_entity_saves_updated_device() -> None:
             hass=hass,
             storage=storage,
             source_manager=source_manager,
+            sensor_manager=sensor_manager,
             device_id="virtual_beleuchtung",
             device_class="power",
             aggregation="sum",
@@ -373,6 +375,7 @@ async def test_add_virtual_entity_rejects_unknown_device() -> None:
     storage.get_virtual_device.return_value = None
 
     source_manager = MagicMock()
+    sensor_manager = MagicMock()
 
     with pytest.raises(
         ValueError,
@@ -382,6 +385,7 @@ async def test_add_virtual_entity_rejects_unknown_device() -> None:
             hass=hass,
             storage=storage,
             source_manager=source_manager,
+            sensor_manager=sensor_manager,
             device_id="unknown-device",
             device_class="power",
             aggregation="sum",

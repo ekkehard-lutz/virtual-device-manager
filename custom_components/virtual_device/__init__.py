@@ -13,6 +13,7 @@ from .const import (
     DOMAIN,
     PLATFORMS,
 )
+from .sensor import VirtualSensorManager
 from .source_manager import SourceManager
 from .storage import VirtualDeviceStorage
 from .virtual_device_services import async_register_virtual_device_services
@@ -66,6 +67,7 @@ async def async_setup_entry(
     await storage.async_load()
 
     source_manager = SourceManager()
+    sensor_manager = VirtualSensorManager()
 
     await async_register_virtual_device_services(
         hass,
@@ -76,11 +78,13 @@ async def async_setup_entry(
         hass,
         storage,
         source_manager,
+        sensor_manager,
     )
 
     hass.data[DOMAIN][entry.entry_id] = {
         "storage": storage,
         "source_manager": source_manager,
+        "sensor_manager": sensor_manager,
     }
 
     await hass.config_entries.async_forward_entry_setups(

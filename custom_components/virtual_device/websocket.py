@@ -3,6 +3,7 @@
 from homeassistant.components import websocket_api
 from homeassistant.core import HomeAssistant
 
+from .sensor import VirtualSensorManager
 from .source_manager import SourceManager
 from .storage import VirtualDeviceStorage
 from .virtual_device_manager import (
@@ -52,6 +53,7 @@ async def async_register_websocket_commands(
     hass: HomeAssistant,
     storage: VirtualDeviceStorage,
     source_manager: SourceManager,
+    sensor_manager: VirtualSensorManager,
 ) -> None:
     """Register Virtual Device Manager WebSocket commands."""
 
@@ -173,6 +175,7 @@ async def async_register_websocket_commands(
             hass=hass,
             storage=storage,
             source_manager=source_manager,
+            sensor_manager=sensor_manager,
             device_id=msg["device_id"],
             device_class=msg["device_class"],
             aggregation=msg["aggregation"],

@@ -136,10 +136,13 @@ async def test_setup_entry(
         storage,
     )
 
+    sensor_manager = hass.data[DOMAIN][entry.entry_id]["sensor_manager"]
+
     websocket_mock.assert_awaited_once_with(
         hass,
         storage,
         source_manager,
+        sensor_manager,
     )
 
     hass.config_entries.async_forward_entry_setups.assert_awaited_once_with(

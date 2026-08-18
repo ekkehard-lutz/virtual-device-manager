@@ -16,6 +16,7 @@ from custom_components.virtual_device.models import (
 )
 from custom_components.virtual_device.sensor import (
     VirtualDeviceSensor,
+    VirtualSensorManager,
     async_setup_entry,
     async_unload_entry,
     handle_state_changed,
@@ -73,6 +74,51 @@ def test_sensor_initial_value() -> None:
     sensor = _create_sensor()
 
     assert sensor.native_value is None
+
+
+def test_sensor_manager_add_entity() -> None:
+    """Test adding a virtual sensor at runtime."""
+    sensor = _create_sensor()
+    add_entities = MagicMock()
+
+    manager = VirtualSensorManager()
+    manager.initialize(add_entities)
+
+    manager.add_entity(
+        device=sensor._device,
+        entity=sensor._virtual_entity,
+        values=[
+            SourceValue(
+                "sensor.power",
+                500,
+                "W",
+            ),
+            SourceValue(
+                "sensor.power_2",
+                1.5,
+                "kW",
+            ),
+        ],
+    )
+
+    add_entities.assert_called_once()
+
+    added_sensor = add_entities.call_args.args[0][0]
+
+    assert isinstance(
+        added_sensor,
+        VirtualDeviceSensor,
+    )
+
+    assert added_sensor.unique_id == (
+        "virtual_device_virtual_beleuchtung_power"
+    )
+
+    assert added_sensor.native_value == 2.0
+
+    assert manager.sensors[
+        "virtual_beleuchtung_power"
+    ] is added_sensor
 
 
 def test_sensor_unique_id() -> None:
@@ -246,11 +292,14 @@ async def test_async_setup_entry_creates_virtual_sensors(
     storage = MagicMock()
     storage.get_virtual_devices.return_value = [device]
 
+    sensor_manager = VirtualSensorManager()
+
     hass.data = {
         DOMAIN: {
             entry.entry_id: {
                 "storage": storage,
                 "source_manager": SourceManager(),
+                "sensor_manager": sensor_manager,
             },
         },
     }
@@ -709,11 +758,14 @@ async def test_async_setup_entry_uses_source_manager_and_creates_listener(
     storage = MagicMock()
     storage.get_virtual_devices.return_value = [device]
 
+    sensor_manager = VirtualSensorManager()
+
     hass.data = {
         DOMAIN: {
             entry.entry_id: {
                 "storage": storage,
                 "source_manager": SourceManager(),
+                "sensor_manager": sensor_manager,
             },
         },
     }

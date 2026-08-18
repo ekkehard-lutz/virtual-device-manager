@@ -70,6 +70,67 @@ class VirtualDeviceSensor(SensorEntity):
         )
 
 
+class VirtualSensorManager:
+    """Manage virtual sensors at runtime."""
+
+    def __init__(self) -> None:
+        """Initialize the sensor manager."""
+        self._sensors: dict[str, VirtualDeviceSensor] = {}
+        self._async_add_entities = None
+
+    def initialize(
+        self,
+        async_add_entities,
+    ) -> None:
+        """Initialize the runtime entity registration."""
+        self._async_add_entities = async_add_entities
+
+    @property
+    def sensors(self) -> Mapping[str, VirtualDeviceSensor]:
+        """Return currently registered virtual sensors."""
+        return self._sensors
+
+    def register_existing(
+        self,
+        sensor: VirtualDeviceSensor,
+    ) -> None:
+        """Register an existing sensor."""
+        self._sensors[
+            sensor._virtual_entity.id
+        ] = sensor
+
+    def add_entity(
+        self,
+        device: VirtualDevice,
+        entity: VirtualEntity,
+        values: list[SourceValue],
+    ) -> None:
+        """Create and add a virtual sensor to Home Assistant."""
+        if self._async_add_entities is None:
+            raise RuntimeError(
+                "VirtualSensorManager is not initialized"
+            )
+
+        if entity.id in self._sensors:
+            raise ValueError(
+                f"Virtual sensor '{entity.id}' is already registered"
+            )
+
+        sensor = VirtualDeviceSensor(
+            device,
+            entity,
+        )
+
+        sensor.update_value(
+            values,
+            write_state=False,
+        )
+
+        self._sensors[entity.id] = sensor
+
+        self._async_add_entities([sensor])
+
+
 async def async_setup_entry(
     hass: HomeAssistant,
     entry: ConfigEntry,
@@ -81,8 +142,13 @@ async def async_setup_entry(
 
     source_manager = entry_data["source_manager"]
 
+    sensor_manager = entry_data["sensor_manager"]
+
+    sensor_manager.initialize(
+        async_add_entities,
+    )
+
     entities: list[VirtualDeviceSensor] = []
-    sensors: dict[str, VirtualDeviceSensor] = {}
 
     for device in storage.get_virtual_devices():
         source_manager.rebuild_virtual_device(
@@ -104,13 +170,13 @@ async def async_setup_entry(
             )
 
             entities.append(sensor)
-            sensors[virtual_entity.id] = sensor
+            sensor_manager.register_existing(sensor)
 
     async def _handle_state_changed(event: Event) -> None:
         """Handle Home Assistant state changes."""
         await handle_state_changed(
             source_manager,
-            sensors,
+            sensor_manager.sensors,
             event,
         )
 

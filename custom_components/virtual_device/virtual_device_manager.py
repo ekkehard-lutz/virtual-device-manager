@@ -5,6 +5,7 @@ from homeassistant.core import HomeAssistant
 from .models import (
     VirtualDevice,
 )
+from .sensor import VirtualSensorManager
 from .source_manager import SourceManager
 from .storage import VirtualDeviceStorage
 from .virtual_device_workflow import (
@@ -69,6 +70,7 @@ async def async_add_virtual_entity(
     hass: HomeAssistant,
     storage: VirtualDeviceStorage,
     source_manager: SourceManager,
+    sensor_manager: VirtualSensorManager,
     device_id: str,
     device_class: str,
     aggregation: str,
@@ -98,6 +100,20 @@ async def async_add_virtual_entity(
     source_manager.rebuild_virtual_device(
         hass,
         updated_device,
+    )
+
+    virtual_entity = next(
+        entity
+        for entity in updated_device.entities
+        if entity.id not in sensor_manager.sensors
+    )
+
+    sensor_manager.add_entity(
+        device=updated_device,
+        entity=virtual_entity,
+        values=source_manager.get_source_values(
+            virtual_entity.id,
+        ),
     )
 
     return updated_device
