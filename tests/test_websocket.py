@@ -25,7 +25,12 @@ async def test_get_virtual_devices_websocket_command_is_registered() -> None:
     with patch(
         "custom_components.virtual_device.websocket.websocket_api.async_register_command"
     ) as register_mock:
-        await async_register_websocket_commands(hass, storage, source_manager, sensor_manager)
+        await async_register_websocket_commands(
+            hass,
+            storage,
+            source_manager,
+            sensor_manager,
+        )
 
     registered_handlers = [
         call.args[1]
@@ -88,7 +93,12 @@ async def test_delete_virtual_device_websocket_command_is_registered() -> None:
     with patch(
         "custom_components.virtual_device.websocket.websocket_api.async_register_command"
     ) as register_mock:
-        await async_register_websocket_commands(hass, storage, source_manager, sensor_manager)
+        await async_register_websocket_commands(
+            hass,
+            storage,
+            source_manager,
+            sensor_manager,
+        )
 
     registered_handlers = [
         call.args[1]
@@ -113,7 +123,12 @@ async def test_delete_virtual_device_websocket_deletes_device() -> None:
     with patch(
         "custom_components.virtual_device.websocket.websocket_api.async_register_command"
     ) as register_mock:
-        await async_register_websocket_commands(hass, storage, source_manager, sensor_manager)
+        await async_register_websocket_commands(
+            hass,
+            storage,
+            source_manager,
+            sensor_manager,
+        )
 
     handler = next(
         handler
@@ -160,7 +175,12 @@ async def test_update_virtual_device_websocket_command_is_registered() -> None:
     with patch(
         "custom_components.virtual_device.websocket.websocket_api.async_register_command"
     ) as register_mock:
-        await async_register_websocket_commands(hass, storage, source_manager, sensor_manager)
+        await async_register_websocket_commands(
+            hass,
+            storage,
+            source_manager,
+            sensor_manager,
+        )
 
     registered_handlers = [
         call.args[1]
@@ -185,7 +205,12 @@ async def test_update_virtual_device_websocket_updates_device() -> None:
     with patch(
         "custom_components.virtual_device.websocket.websocket_api.async_register_command"
     ) as register_mock:
-        await async_register_websocket_commands(hass, storage, source_manager, sensor_manager)
+        await async_register_websocket_commands(
+            hass,
+            storage,
+            source_manager,
+            sensor_manager,
+        )
 
     handler = next(
         handler
@@ -252,7 +277,12 @@ async def test_add_virtual_entity_websocket_command_is_registered() -> None:
     with patch(
         "custom_components.virtual_device.websocket.websocket_api.async_register_command"
     ) as register_mock:
-        await async_register_websocket_commands(hass, storage, source_manager, sensor_manager)
+        await async_register_websocket_commands(
+            hass,
+            storage,
+            source_manager,
+            sensor_manager,
+        )
 
     registered_handlers = [
         call.args[1]
@@ -277,7 +307,12 @@ async def test_add_virtual_entity_websocket_adds_entity() -> None:
     with patch(
         "custom_components.virtual_device.websocket.websocket_api.async_register_command"
     ) as register_mock:
-        await async_register_websocket_commands(hass, storage, source_manager, sensor_manager)
+        await async_register_websocket_commands(
+            hass,
+            storage,
+            source_manager,
+            sensor_manager,
+        )
 
     handler = next(
         handler
@@ -365,7 +400,12 @@ async def test_update_virtual_entity_websocket_command_is_registered() -> None:
     with patch(
         "custom_components.virtual_device.websocket.websocket_api.async_register_command"
     ) as register_mock:
-        await async_register_websocket_commands(hass, storage, source_manager, sensor_manager)
+        await async_register_websocket_commands(
+            hass,
+            storage,
+            source_manager,
+            sensor_manager,
+        )
 
     registered_handlers = [
         call.args[1]
@@ -390,7 +430,12 @@ async def test_update_virtual_entity_websocket_updates_entity() -> None:
     with patch(
         "custom_components.virtual_device.websocket.websocket_api.async_register_command"
     ) as register_mock:
-        await async_register_websocket_commands(hass, storage, source_manager, sensor_manager)
+        await async_register_websocket_commands(
+            hass,
+            storage,
+            source_manager,
+            sensor_manager,
+        )
 
     handler = next(
         handler
@@ -477,7 +522,12 @@ async def test_delete_virtual_entity_websocket_command_is_registered() -> None:
     with patch(
         "custom_components.virtual_device.websocket.websocket_api.async_register_command"
     ) as register_mock:
-        await async_register_websocket_commands(hass, storage, source_manager, sensor_manager)
+        await async_register_websocket_commands(
+            hass,
+            storage,
+            source_manager,
+            sensor_manager,
+        )
 
     registered_handlers = [
         call.args[1]
@@ -502,7 +552,12 @@ async def test_delete_virtual_entity_websocket_deletes_entity() -> None:
     with patch(
         "custom_components.virtual_device.websocket.websocket_api.async_register_command"
     ) as register_mock:
-        await async_register_websocket_commands(hass, storage, source_manager, sensor_manager)
+        await async_register_websocket_commands(
+            hass,
+            storage,
+            source_manager,
+            sensor_manager,
+        )
 
     handler = next(
         handler
