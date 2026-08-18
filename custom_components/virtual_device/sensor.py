@@ -30,7 +30,7 @@ class VirtualDeviceSensor(SensorEntity):
         self._virtual_entity = entity
 
         self._attr_unique_id = (
-            f"virtual_device_{device.id}_{entity.id}"
+            f"virtual_device_{entity.id}"
         )
 
         self._attr_name = (

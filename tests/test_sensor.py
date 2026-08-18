@@ -28,12 +28,12 @@ from custom_components.virtual_device.source_manager import SourceManager
 def _create_sensor() -> VirtualDeviceSensor:
     """Create a test virtual sensor."""
     device = VirtualDevice(
-        id="device-1",
+        id="virtual_beleuchtung",
         name="Energie",
         label_ref="label-id-energie",
         entities=[
             VirtualEntity(
-                id="power",
+                id="virtual_beleuchtung_power",
                 device_class="power",
                 aggregation="sum",
                 unit="kW",
@@ -79,7 +79,9 @@ def test_sensor_unique_id() -> None:
     """Test the sensor unique ID."""
     sensor = _create_sensor()
 
-    assert sensor.unique_id == "virtual_device_device-1_power"
+    assert sensor.unique_id == (
+        "virtual_device_virtual_beleuchtung_power"
+    )
 
 
 def test_sensor_update_value_sum() -> None:
@@ -273,12 +275,8 @@ async def test_async_setup_entry_creates_virtual_sensors(
         for entity in entities
     )
 
-    assert entities[0].unique_id == (
-        "virtual_device_device-1_power"
-    )
-    assert entities[1].unique_id == (
-        "virtual_device_device-1_energy"
-    )
+    assert entities[0].unique_id == "virtual_device_power"
+    assert entities[1].unique_id == "virtual_device_energy"
 
 
 def test_sensor_device_info() -> None:
@@ -289,7 +287,7 @@ def test_sensor_device_info() -> None:
 
     assert device_info is not None
     assert device_info["identifiers"] == {
-        ("virtual_device", "device-1")
+        ("virtual_device", "virtual_beleuchtung")
     }
     assert device_info["name"] == "Energie"
 
