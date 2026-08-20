@@ -124,7 +124,7 @@ async def test_update_virtual_device_with_label_ref_updates_label() -> None:
 
     update_mock.assert_called_once()
     storage.async_save_virtual_device.assert_awaited_once_with(updated)
-  
+
 
 @pytest.mark.asyncio
 async def test_update_virtual_device_without_name_keeps_existing_name() -> None:
@@ -166,9 +166,69 @@ async def test_delete_virtual_device_removes_device() -> None:
         device_id="device-1",
     )
 
-    storage.async_delete_virtual_device.assert_awaited_once_with(
+    storage.async_delete_virtual_device.assert_awaited_once_with("device-1")
+
+
+@pytest.mark.asyncio
+async def test_delete_virtual_device_runs_full_lifecycle_before_storage() -> None:
+    """Delete runtime entities, sources, and registry before stored config."""
+    hass = MagicMock()
+    device = VirtualDevice(
+        id="device-1",
+        label_ref="label-1",
+        entities=[
+            VirtualEntity("device-1_power", "power", "sum", "W"),
+            VirtualEntity("device-1_energy", "energy", "sum", "kWh"),
+        ],
+    )
+    storage = MagicMock()
+    storage.get_virtual_device.return_value = device
+    storage.async_delete_virtual_device = AsyncMock()
+    source_manager = MagicMock()
+    lifecycle_manager = MagicMock()
+    lifecycle_manager.async_remove_device_entities = AsyncMock()
+
+    await async_delete_virtual_device(
+        hass=hass,
+        storage=storage,
+        device_id="device-1",
+        source_manager=source_manager,
+        lifecycle_manager=lifecycle_manager,
+    )
+
+    lifecycle_manager.async_remove_device_entities.assert_awaited_once_with(device)
+    source_manager.remove_virtual_device.assert_called_once_with("device-1")
+    lifecycle_manager.async_remove_device_registry_entry.assert_called_once_with(
         "device-1"
     )
+    storage.async_delete_virtual_device.assert_awaited_once_with("device-1")
+
+
+@pytest.mark.asyncio
+async def test_repeated_entity_delete_is_idempotent() -> None:
+    """Deleting an already removed entity keeps the remaining device intact."""
+    hass = MagicMock()
+    device = VirtualDevice(id="device-1", label_ref="label-1")
+    storage = MagicMock()
+    storage.get_virtual_device.return_value = device
+    storage.async_save_virtual_device = AsyncMock()
+    source_manager = MagicMock()
+    lifecycle_manager = MagicMock()
+    lifecycle_manager.async_remove_entity = AsyncMock()
+
+    result = await async_delete_virtual_entity(
+        hass=hass,
+        storage=storage,
+        source_manager=source_manager,
+        device_id="device-1",
+        entity_id="device-1_power",
+        lifecycle_manager=lifecycle_manager,
+    )
+
+    assert result is device
+    lifecycle_manager.async_remove_entity.assert_awaited_once_with("device-1_power")
+    source_manager.remove_virtual_entity.assert_called_once_with("device-1_power")
+    storage.async_save_virtual_device.assert_not_awaited()
 
 
 @pytest.mark.asyncio
@@ -242,9 +302,7 @@ async def test_add_virtual_entity_saves_updated_device() -> None:
 
     assert result is updated
     add_mock.assert_called_once()
-    storage.async_save_virtual_device.assert_awaited_once_with(
-        updated
-    )
+    storage.async_save_virtual_device.assert_awaited_once_with(updated)
 
 
 @pytest.mark.asyncio
@@ -306,9 +364,7 @@ async def test_update_virtual_entity_saves_updated_device() -> None:
 
     assert result is updated
     update_mock.assert_called_once()
-    storage.async_save_virtual_device.assert_awaited_once_with(
-        updated
-    )
+    storage.async_save_virtual_device.assert_awaited_once_with(updated)
 
 
 @pytest.mark.asyncio
@@ -352,7 +408,7 @@ async def test_delete_virtual_entity_saves_updated_device() -> None:
             source_manager=source_manager,
             device_id="virtual_beleuchtung",
             entity_id="virtual_beleuchtung_power",
-            )
+        )
 
     source_manager.rebuild_virtual_device.assert_called_once_with(
         hass,
@@ -361,9 +417,7 @@ async def test_delete_virtual_entity_saves_updated_device() -> None:
 
     assert result is updated
     delete_mock.assert_called_once()
-    storage.async_save_virtual_device.assert_awaited_once_with(
-        updated
-    )
+    storage.async_save_virtual_device.assert_awaited_once_with(updated)
 
 
 @pytest.mark.asyncio

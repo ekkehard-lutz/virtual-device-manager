@@ -3,6 +3,7 @@
 from homeassistant.components import websocket_api
 from homeassistant.core import HomeAssistant
 
+from .lifecycle import VirtualDeviceLifecycleManager
 from .sensor import VirtualSensorManager
 from .source_manager import SourceManager
 from .storage import VirtualDeviceStorage
@@ -32,10 +33,7 @@ def _serialize_virtual_device(device) -> dict:
         "id": device.id,
         "label_ref": device.label_ref,
         "name": device.name,
-        "entities": [
-            _serialize_virtual_entity(entity)
-            for entity in device.entities
-        ],
+        "entities": [_serialize_virtual_entity(entity) for entity in device.entities],
     }
 
 
@@ -44,8 +42,7 @@ def _serialize_virtual_devices(
 ) -> list[dict]:
     """Serialize virtual devices for the WebSocket API."""
     return [
-        _serialize_virtual_device(device)
-        for device in storage.get_virtual_devices()
+        _serialize_virtual_device(device) for device in storage.get_virtual_devices()
     ]
 
 
@@ -54,6 +51,7 @@ async def async_register_websocket_commands(
     storage: VirtualDeviceStorage,
     source_manager: SourceManager,
     sensor_manager: VirtualSensorManager,
+    lifecycle_manager: VirtualDeviceLifecycleManager | None = None,
 ) -> None:
     """Register Virtual Device Manager WebSocket commands."""
 
@@ -96,11 +94,17 @@ async def async_register_websocket_commands(
         msg: dict,
     ) -> None:
         """Delete a virtual device."""
-        await async_delete_virtual_device(
-            hass=hass,
-            storage=storage,
-            device_id=msg["device_id"],
-        )
+        kwargs = {
+            "hass": hass,
+            "storage": storage,
+            "device_id": msg["device_id"],
+        }
+
+        if lifecycle_manager is not None:
+            kwargs["source_manager"] = source_manager
+            kwargs["lifecycle_manager"] = lifecycle_manager
+
+        await async_delete_virtual_device(**kwargs)
 
         connection.send_result(
             msg["id"],
@@ -128,17 +132,22 @@ async def async_register_websocket_commands(
         msg: dict,
     ) -> None:
         """Update a virtual device."""
-        updated_device = await async_update_virtual_device(
-            hass=hass,
-            storage=storage,
-            device_id=msg["device_id"],
-            name=msg["name"],
-            label_ref=msg["label_ref"],
-            confirm_physical_name_conflict=msg.get(
+        kwargs = {
+            "hass": hass,
+            "storage": storage,
+            "device_id": msg["device_id"],
+            "name": msg["name"],
+            "label_ref": msg["label_ref"],
+            "confirm_physical_name_conflict": msg.get(
                 "confirm_physical_name_conflict",
                 False,
             ),
-        )
+        }
+
+        if lifecycle_manager is not None:
+            kwargs["lifecycle_manager"] = lifecycle_manager
+
+        updated_device = await async_update_virtual_device(**kwargs)
 
         connection.send_result(
             msg["id"],
@@ -171,17 +180,22 @@ async def async_register_websocket_commands(
         msg: dict,
     ) -> None:
         """Add a virtual entity."""
-        updated_device = await async_add_virtual_entity(
-            hass=hass,
-            storage=storage,
-            source_manager=source_manager,
-            sensor_manager=sensor_manager,
-            device_id=msg["device_id"],
-            device_class=msg["device_class"],
-            aggregation=msg["aggregation"],
-            unit=msg["unit"],
-            name=msg.get("name"),
-        )
+        kwargs = {
+            "hass": hass,
+            "storage": storage,
+            "source_manager": source_manager,
+            "sensor_manager": sensor_manager,
+            "device_id": msg["device_id"],
+            "device_class": msg["device_class"],
+            "aggregation": msg["aggregation"],
+            "unit": msg["unit"],
+            "name": msg.get("name"),
+        }
+
+        if lifecycle_manager is not None:
+            kwargs["lifecycle_manager"] = lifecycle_manager
+
+        updated_device = await async_add_virtual_entity(**kwargs)
 
         connection.send_result(
             msg["id"],
@@ -215,17 +229,22 @@ async def async_register_websocket_commands(
         msg: dict,
     ) -> None:
         """Update a virtual entity."""
-        updated_device = await async_update_virtual_entity(
-            hass=hass,
-            storage=storage,
-            source_manager=source_manager,
-            device_id=msg["device_id"],
-            entity_id=msg["entity_id"],
-            device_class=msg.get("device_class"),
-            aggregation=msg.get("aggregation"),
-            unit=msg.get("unit"),
-            name=msg.get("name"),
-        )
+        kwargs = {
+            "hass": hass,
+            "storage": storage,
+            "source_manager": source_manager,
+            "device_id": msg["device_id"],
+            "entity_id": msg["entity_id"],
+            "device_class": msg.get("device_class"),
+            "aggregation": msg.get("aggregation"),
+            "unit": msg.get("unit"),
+            "name": msg.get("name"),
+        }
+
+        if lifecycle_manager is not None:
+            kwargs["sensor_manager"] = sensor_manager
+
+        updated_device = await async_update_virtual_entity(**kwargs)
 
         connection.send_result(
             msg["id"],
@@ -255,13 +274,18 @@ async def async_register_websocket_commands(
         msg: dict,
     ) -> None:
         """Delete a virtual entity."""
-        updated_device = await async_delete_virtual_entity(
-            hass=hass,
-            storage=storage,
-            source_manager=source_manager,
-            device_id=msg["device_id"],
-            entity_id=msg["entity_id"],
-        )
+        kwargs = {
+            "hass": hass,
+            "storage": storage,
+            "source_manager": source_manager,
+            "device_id": msg["device_id"],
+            "entity_id": msg["entity_id"],
+        }
+
+        if lifecycle_manager is not None:
+            kwargs["lifecycle_manager"] = lifecycle_manager
+
+        updated_device = await async_delete_virtual_entity(**kwargs)
 
         connection.send_result(
             msg["id"],

@@ -196,6 +196,24 @@ def test_physical_device_name_conflict_is_not_reported_for_different_name() -> N
         )
 
 
+def test_vdm_device_name_is_not_a_physical_device_conflict() -> None:
+    """Ignore a VDM-owned device when checking physical name conflicts."""
+    hass = MagicMock()
+
+    virtual_device = MagicMock()
+    virtual_device.name = "Licht"
+    virtual_device.identifiers = {("virtual_device", "virtual_light")}
+
+    device_registry = MagicMock()
+    device_registry.devices.values.return_value = [virtual_device]
+
+    with patch(
+        "custom_components.virtual_device.virtual_device_workflow.device_registry.async_get",
+        return_value=device_registry,
+    ):
+        assert not has_physical_device_name_conflict(hass, "Licht")
+
+
 def test_create_virtual_device_requires_confirmation_for_physical_name_conflict() -> (
     None
 ):

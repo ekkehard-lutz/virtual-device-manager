@@ -61,7 +61,6 @@ class SourceManager:
             self._async_reconciliation_loop()
         )
 
-
     async def async_stop(self) -> None:
         """Stop periodic source reconciliation."""
         task = self._reconciliation_task
@@ -79,19 +78,14 @@ class SourceManager:
         except asyncio.CancelledError:
             pass
 
-
     async def _async_reconciliation_loop(self) -> None:
         """Run periodic source reconciliation."""
         try:
             while True:
-                await asyncio.sleep(
-                    self._reconciliation_interval
-                )
+                await asyncio.sleep(self._reconciliation_interval)
 
                 if self._hass is not None:
-                    await self.async_reconcile(
-                        self._hass
-                    )
+                    await self.async_reconcile(self._hass)
 
         except asyncio.CancelledError:
             raise
@@ -118,9 +112,7 @@ class SourceManager:
         source_entity_id: str,
     ) -> None:
         """Remove a source relationship."""
-        sources = self._sources_by_virtual_entity.get(
-            virtual_entity_id
-        )
+        sources = self._sources_by_virtual_entity.get(virtual_entity_id)
 
         if sources is not None:
             sources.discard(source_entity_id)
@@ -131,9 +123,7 @@ class SourceManager:
                     None,
                 )
 
-        virtual_entities = self._virtual_entities_by_source.get(
-            source_entity_id
-        )
+        virtual_entities = self._virtual_entities_by_source.get(source_entity_id)
 
         if virtual_entities is not None:
             virtual_entities.discard(virtual_entity_id)
@@ -185,9 +175,7 @@ class SourceManager:
         """Return all cached source values for a virtual entity."""
         return [
             self._source_values[source_entity_id]
-            for source_entity_id in self.get_sources(
-                virtual_entity_id
-            )
+            for source_entity_id in self.get_sources(virtual_entity_id)
             if source_entity_id in self._source_values
         ]
 
@@ -198,9 +186,7 @@ class SourceManager:
         """Update a cached source value and return affected virtual entities."""
         self._source_values[source_value.entity_id] = source_value
 
-        return self.get_affected_virtual_entities(
-            source_value.entity_id
-        )
+        return self.get_affected_virtual_entities(source_value.entity_id)
 
     def remove_source_value(
         self,
@@ -212,9 +198,7 @@ class SourceManager:
             None,
         )
 
-        return self.get_affected_virtual_entities(
-            source_entity_id
-        )
+        return self.get_affected_virtual_entities(source_entity_id)
 
     def clear(self) -> None:
         """Clear all source relationships and cached values."""
@@ -222,6 +206,21 @@ class SourceManager:
         self._virtual_entities_by_source.clear()
         self._source_values.clear()
         self._virtual_devices.clear()
+
+    def remove_virtual_entity(self, virtual_entity_id: str) -> None:
+        """Remove every source relationship for one virtual entity."""
+        for source_entity_id in self.get_sources(virtual_entity_id):
+            self.remove_source(virtual_entity_id, source_entity_id)
+
+    def remove_virtual_device(self, device_id: str) -> None:
+        """Remove all source relationships for one virtual device."""
+        device = self._virtual_devices.pop(device_id, None)
+
+        if device is None:
+            return
+
+        for entity in device.entities:
+            self.remove_virtual_entity(entity.id)
 
     def rebuild_virtual_device(
         self,
@@ -236,13 +235,7 @@ class SourceManager:
             virtual_entity_id = virtual_entity.id
 
             # Remove existing relationships first.
-            for source_entity_id in self.get_sources(
-                virtual_entity_id
-            ):
-                self.remove_source(
-                    virtual_entity_id,
-                    source_entity_id,
-                )
+            self.remove_virtual_entity(virtual_entity_id)
 
             source_entities = get_source_entities(
                 hass,
@@ -266,9 +259,7 @@ class SourceManager:
             )
 
             for source_value in source_values:
-                self._source_values[
-                    source_value.entity_id
-                ] = source_value
+                self._source_values[source_value.entity_id] = source_value
 
     async def async_reconcile(
         self,
@@ -279,9 +270,7 @@ class SourceManager:
             for virtual_entity in device.entities:
                 virtual_entity_id = virtual_entity.id
 
-                current_sources = set(
-                    self.get_sources(virtual_entity_id)
-                )
+                current_sources = set(self.get_sources(virtual_entity_id))
 
                 discovered_sources = set(
                     get_source_entities(
@@ -292,18 +281,14 @@ class SourceManager:
                 )
 
                 # Remove sources that no longer match.
-                for source_entity_id in (
-                    current_sources - discovered_sources
-                ):
+                for source_entity_id in current_sources - discovered_sources:
                     self.remove_source(
                         virtual_entity_id,
                         source_entity_id,
                     )
 
                 # Add newly matching sources.
-                for source_entity_id in (
-                    discovered_sources - current_sources
-                ):
+                for source_entity_id in discovered_sources - current_sources:
                     self.add_source(
                         virtual_entity_id,
                         source_entity_id,
@@ -312,9 +297,7 @@ class SourceManager:
         # Rebuild the value cache from the now-current relationships.
         reconciled_values: dict[str, SourceValue] = {}
 
-        source_entity_ids = set(
-            self._virtual_entities_by_source
-        )
+        source_entity_ids = set(self._virtual_entities_by_source)
 
         for source_entity_id in source_entity_ids:
             state = hass.states.get(source_entity_id)
@@ -330,9 +313,7 @@ class SourceManager:
             except (TypeError, ValueError):
                 continue
 
-            unit = state.attributes.get(
-                "unit_of_measurement"
-            )
+            unit = state.attributes.get("unit_of_measurement")
 
             if not unit:
                 continue
@@ -357,7 +338,4 @@ class SourceManager:
         source_entity_id: str,
     ) -> list[str]:
         """Return virtual entities affected by a source change."""
-        return self.get_affected_virtual_entities(
-            source_entity_id
-        )
-    
+        return self.get_affected_virtual_entities(source_entity_id)
