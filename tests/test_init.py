@@ -28,16 +28,11 @@ async def test_setup_registers_frontend_static_path() -> None:
 
     hass.http.async_register_static_paths.assert_awaited_once()
 
-    static_paths = (
-        hass.http.async_register_static_paths.await_args.args[0]
-    )
+    static_paths = hass.http.async_register_static_paths.await_args.args[0]
 
     assert len(static_paths) == 1
 
-    assert (
-        static_paths[0].url_path
-        == "/api/virtual_device/frontend"
-    )
+    assert static_paths[0].url_path == "/api/virtual_device/frontend"
 
     assert static_paths[0].cache_headers is False
 
@@ -68,10 +63,7 @@ async def test_setup_registers_frontend_panel(
         webcomponent_name="virtual-device-manager",
         sidebar_title="Virtual Device Manager",
         sidebar_icon="mdi:label-multiple",
-        js_url=(
-            "/api/virtual_device/frontend/"
-            "virtual-devices.js"
-        ),
+        js_url=("/api/virtual_device/frontend/virtual-devices.js"),
         require_admin=True,
     )
 
@@ -89,9 +81,13 @@ async def test_setup_entry(
 
     storage = MagicMock()
     storage.async_load = AsyncMock()
+    storage.get_virtual_devices.return_value = []
 
     source_manager = MagicMock()
     source_manager.async_start = AsyncMock()
+
+    lifecycle_manager = MagicMock()
+    lifecycle_manager.async_reconcile = AsyncMock()
 
     services_mock = AsyncMock()
     websocket_mock = AsyncMock()
@@ -107,20 +103,21 @@ async def test_setup_entry(
     )
 
     monkeypatch.setattr(
-        "custom_components.virtual_device."
-        "async_register_virtual_device_services",
+        "custom_components.virtual_device.VirtualDeviceLifecycleManager",
+        lambda *args: lifecycle_manager,
+    )
+
+    monkeypatch.setattr(
+        "custom_components.virtual_device.async_register_virtual_device_services",
         services_mock,
     )
 
     monkeypatch.setattr(
-        "custom_components.virtual_device."
-        "async_register_websocket_commands",
+        "custom_components.virtual_device.async_register_websocket_commands",
         websocket_mock,
     )
 
-    hass.config_entries.async_forward_entry_setups = (
-        AsyncMock()
-    )
+    hass.config_entries.async_forward_entry_setups = AsyncMock()
 
     result = await async_setup_entry(
         hass,
@@ -131,24 +128,30 @@ async def test_setup_entry(
 
     storage.async_load.assert_awaited_once()
 
+    sensor_manager = hass.data[DOMAIN][entry.entry_id]["sensor_manager"]
+    assert hass.data[DOMAIN][entry.entry_id]["lifecycle_manager"] is lifecycle_manager
+
     services_mock.assert_awaited_once_with(
         hass,
         storage,
+        lifecycle_manager,
+        source_manager,
     )
-
-    sensor_manager = hass.data[DOMAIN][entry.entry_id]["sensor_manager"]
 
     websocket_mock.assert_awaited_once_with(
         hass,
         storage,
         source_manager,
         sensor_manager,
+        lifecycle_manager,
     )
 
     hass.config_entries.async_forward_entry_setups.assert_awaited_once_with(
         entry,
         PLATFORMS,
     )
+
+    lifecycle_manager.async_reconcile.assert_awaited_once_with([])
 
     source_manager.async_start.assert_awaited_once_with(
         hass,
@@ -185,9 +188,7 @@ async def test_unload_entry(
         }
     }
 
-    hass.config_entries.async_unload_platforms = (
-        AsyncMock(return_value=True)
-    )
+    hass.config_entries.async_unload_platforms = AsyncMock(return_value=True)
 
     result = await async_unload_entry(
         hass,

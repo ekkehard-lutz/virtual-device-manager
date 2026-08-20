@@ -13,6 +13,7 @@ from .const import (
     DOMAIN,
     PLATFORMS,
 )
+from .lifecycle import VirtualDeviceLifecycleManager
 from .sensor import VirtualSensorManager
 from .source_manager import SourceManager
 from .storage import VirtualDeviceStorage
@@ -68,10 +69,21 @@ async def async_setup_entry(
 
     source_manager = SourceManager()
     sensor_manager = VirtualSensorManager()
+    lifecycle_manager = VirtualDeviceLifecycleManager(
+        hass,
+        entry.entry_id,
+        sensor_manager,
+    )
+
+    await lifecycle_manager.async_reconcile(
+        storage.get_virtual_devices(),
+    )
 
     await async_register_virtual_device_services(
         hass,
         storage,
+        lifecycle_manager,
+        source_manager,
     )
 
     await async_register_websocket_commands(
@@ -79,12 +91,14 @@ async def async_setup_entry(
         storage,
         source_manager,
         sensor_manager,
+        lifecycle_manager,
     )
 
     hass.data[DOMAIN][entry.entry_id] = {
         "storage": storage,
         "source_manager": source_manager,
         "sensor_manager": sensor_manager,
+        "lifecycle_manager": lifecycle_manager,
     }
 
     await hass.config_entries.async_forward_entry_setups(

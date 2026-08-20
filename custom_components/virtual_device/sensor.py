@@ -11,6 +11,7 @@ from homeassistant.helpers.entity import DeviceInfo
 
 from .aggregator import SourceValue, aggregate_values
 from .const import DOMAIN
+from .lifecycle import virtual_entity_unique_id
 from .models import VirtualDevice, VirtualEntity
 from .source_manager import SourceManager
 
@@ -29,14 +30,10 @@ class VirtualDeviceSensor(SensorEntity):
         self._device = device
         self._virtual_entity = entity
 
-        self._attr_unique_id = (
-            f"virtual_device_{entity.id}"
-        )
+        self._attr_unique_id = virtual_entity_unique_id(entity.id)
 
         self._attr_name = (
-            entity.name
-            if entity.name is not None
-            else entity.device_class
+            entity.name if entity.name is not None else entity.device_class
         )
 
         self._attr_device_class = entity.device_class
@@ -95,9 +92,7 @@ class VirtualSensorManager:
         sensor: VirtualDeviceSensor,
     ) -> None:
         """Register an existing sensor."""
-        self._sensors[
-            sensor._virtual_entity.id
-        ] = sensor
+        self._sensors[sensor._virtual_entity.id] = sensor
 
     def add_entity(
         self,
@@ -107,14 +102,10 @@ class VirtualSensorManager:
     ) -> None:
         """Create and add a virtual sensor to Home Assistant."""
         if self._async_add_entities is None:
-            raise RuntimeError(
-                "VirtualSensorManager is not initialized"
-            )
+            raise RuntimeError("VirtualSensorManager is not initialized")
 
         if entity.id in self._sensors:
-            raise ValueError(
-                f"Virtual sensor '{entity.id}' is already registered"
-            )
+            raise ValueError(f"Virtual sensor '{entity.id}' is already registered")
 
         sensor = VirtualDeviceSensor(
             device,
@@ -129,6 +120,36 @@ class VirtualSensorManager:
         self._sensors[entity.id] = sensor
 
         self._async_add_entities([sensor])
+
+    async def async_remove_entity(self, entity_id: str) -> None:
+        """Remove one runtime virtual sensor if it is currently active."""
+        sensor = self._sensors.pop(entity_id, None)
+
+        if sensor is not None:
+            await sensor.async_remove(force_remove=True)
+
+    async def async_remove_entity_by_unique_id(self, unique_id: str) -> None:
+        """Remove a runtime sensor by its stable Home Assistant unique ID."""
+        for entity_id, sensor in list(self._sensors.items()):
+            if sensor.unique_id == unique_id:
+                await self.async_remove_entity(entity_id)
+                return
+
+    async def async_remove_entities_for_device(self, device_id: str) -> None:
+        """Remove all active virtual sensors belonging to a device."""
+        for entity_id, sensor in list(self._sensors.items()):
+            if sensor._device.id == device_id:
+                await self.async_remove_entity(entity_id)
+
+    async def async_replace_entity(
+        self,
+        device: VirtualDevice,
+        entity: VirtualEntity,
+        values: list[SourceValue],
+    ) -> None:
+        """Replace a runtime sensor while retaining its registry unique ID."""
+        await self.async_remove_entity(entity.id)
+        self.add_entity(device, entity, values)
 
 
 async def async_setup_entry(
@@ -261,9 +282,7 @@ def source_value_from_state(
     except (TypeError, ValueError):
         return None
 
-    unit = state.attributes.get(
-        "unit_of_measurement"
-    )
+    unit = state.attributes.get("unit_of_measurement")
 
     return SourceValue(
         entity_id=entity_id,

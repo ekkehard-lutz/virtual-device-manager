@@ -2,9 +2,8 @@
 
 from homeassistant.core import HomeAssistant
 
-from .models import (
-    VirtualDevice,
-)
+from .lifecycle import VirtualDeviceLifecycleManager
+from .models import VirtualDevice
 from .sensor import VirtualSensorManager
 from .source_manager import SourceManager
 from .storage import VirtualDeviceStorage
@@ -22,6 +21,7 @@ async def async_create_virtual_device(
     storage: VirtualDeviceStorage,
     label_ref: str,
     name: str | None,
+    lifecycle_manager: VirtualDeviceLifecycleManager | None = None,
 ) -> VirtualDevice:
     """Create and persist a virtual device."""
     device = create_virtual_device(
@@ -32,6 +32,8 @@ async def async_create_virtual_device(
     )
 
     await storage.async_save_virtual_device(device)
+    if lifecycle_manager is not None:
+        lifecycle_manager.async_ensure_device(device)
 
     return device
 
@@ -43,14 +45,13 @@ async def async_update_virtual_device(
     name: str | None = None,
     label_ref: str | None = None,
     confirm_physical_name_conflict: bool = False,
+    lifecycle_manager: VirtualDeviceLifecycleManager | None = None,
 ) -> VirtualDevice:
     """Update and persist an existing virtual device."""
     device = storage.get_virtual_device(device_id)
 
     if device is None:
-        raise ValueError(
-            f"Virtual device '{device_id}' does not exist"
-        )
+        raise ValueError(f"Virtual device '{device_id}' does not exist")
 
     updated_device = update_virtual_device(
         hass=hass,
@@ -62,6 +63,8 @@ async def async_update_virtual_device(
     )
 
     await storage.async_save_virtual_device(updated_device)
+    if lifecycle_manager is not None:
+        lifecycle_manager.async_ensure_device(updated_device)
 
     return updated_device
 
@@ -76,14 +79,13 @@ async def async_add_virtual_entity(
     aggregation: str,
     unit: str,
     name: str | None = None,
+    lifecycle_manager: VirtualDeviceLifecycleManager | None = None,
 ) -> VirtualDevice:
     """Add and persist a virtual entity."""
     device = storage.get_virtual_device(device_id)
 
     if device is None:
-        raise ValueError(
-            f"Virtual device '{device_id}' does not exist"
-        )
+        raise ValueError(f"Virtual device '{device_id}' does not exist")
 
     updated_device = add_virtual_entity(
         device=device,
@@ -93,9 +95,10 @@ async def async_add_virtual_entity(
         name=name,
     )
 
-    await storage.async_save_virtual_device(
-        updated_device
-    )
+    await storage.async_save_virtual_device(updated_device)
+
+    if lifecycle_manager is not None:
+        lifecycle_manager.async_ensure_device(updated_device)
 
     source_manager.rebuild_virtual_device(
         hass,
@@ -129,14 +132,13 @@ async def async_update_virtual_entity(
     aggregation: str | None = None,
     unit: str | None = None,
     name: str | None = None,
+    sensor_manager: VirtualSensorManager | None = None,
 ) -> VirtualDevice:
     """Update and persist a virtual entity."""
     device = storage.get_virtual_device(device_id)
 
     if device is None:
-        raise ValueError(
-            f"Virtual device '{device_id}' does not exist"
-        )
+        raise ValueError(f"Virtual device '{device_id}' does not exist")
 
     updated_device = update_virtual_entity(
         device=device,
@@ -147,14 +149,23 @@ async def async_update_virtual_entity(
         name=name,
     )
 
-    await storage.async_save_virtual_device(
-        updated_device
-    )
+    await storage.async_save_virtual_device(updated_device)
 
     source_manager.rebuild_virtual_device(
         hass,
         updated_device,
     )
+
+    updated_entity = next(
+        entity for entity in updated_device.entities if entity.id == entity_id
+    )
+
+    if sensor_manager is not None:
+        await sensor_manager.async_replace_entity(
+            device=updated_device,
+            entity=updated_entity,
+            values=source_manager.get_source_values(entity_id),
+        )
 
     return updated_device
 
@@ -165,23 +176,27 @@ async def async_delete_virtual_entity(
     source_manager: SourceManager,
     device_id: str,
     entity_id: str,
+    lifecycle_manager: VirtualDeviceLifecycleManager | None = None,
 ) -> VirtualDevice:
     """Delete and persist a virtual entity."""
     device = storage.get_virtual_device(device_id)
 
     if device is None:
-        raise ValueError(
-            f"Virtual device '{device_id}' does not exist"
-        )
+        raise ValueError(f"Virtual device '{device_id}' does not exist")
+
+    if lifecycle_manager is not None:
+        await lifecycle_manager.async_remove_entity(entity_id)
+    source_manager.remove_virtual_entity(entity_id)
+
+    if not any(entity.id == entity_id for entity in device.entities):
+        return device
 
     updated_device = delete_virtual_entity(
         device=device,
         entity_id=entity_id,
     )
 
-    await storage.async_save_virtual_device(
-        updated_device
-    )
+    await storage.async_save_virtual_device(updated_device)
 
     source_manager.rebuild_virtual_device(
         hass,
@@ -195,7 +210,34 @@ async def async_delete_virtual_device(
     hass: HomeAssistant,
     storage: VirtualDeviceStorage,
     device_id: str,
+    source_manager: SourceManager | None = None,
+    lifecycle_manager: VirtualDeviceLifecycleManager | None = None,
 ) -> None:
     """Delete a virtual device."""
-    await storage.async_delete_virtual_device(device_id)
+    device = storage.get_virtual_device(device_id)
 
+    if device is None:
+        if lifecycle_manager is not None:
+            await lifecycle_manager.async_remove_device_entities(
+                VirtualDevice(id=device_id, label_ref="")
+            )
+
+        if source_manager is not None:
+            source_manager.remove_virtual_device(device_id)
+
+        if lifecycle_manager is not None:
+            lifecycle_manager.async_remove_device_registry_entry(device_id)
+
+        await storage.async_delete_virtual_device(device_id)
+        return
+
+    if lifecycle_manager is not None:
+        await lifecycle_manager.async_remove_device_entities(device)
+
+    if source_manager is not None:
+        source_manager.remove_virtual_device(device_id)
+
+    if lifecycle_manager is not None:
+        lifecycle_manager.async_remove_device_registry_entry(device_id)
+
+    await storage.async_delete_virtual_device(device_id)
