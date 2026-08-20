@@ -121,6 +121,53 @@ def test_sensor_manager_add_entity() -> None:
     ] is added_sensor
 
 
+def test_sensor_manager_update_entities() -> None:
+    """Update virtual sensors after source relationships changed."""
+    sensor = _create_sensor()
+    sensor.update_value = MagicMock()
+
+    manager = VirtualSensorManager()
+    manager.register_existing(sensor)
+
+    source_manager = MagicMock()
+    source_manager.get_source_values.return_value = [
+        SourceValue(
+            "sensor.power_1",
+            500,
+            "W",
+        ),
+        SourceValue(
+            "sensor.power_2",
+            250,
+            "W",
+        ),
+    ]
+
+    manager.update_entities(
+        source_manager,
+        ["virtual_beleuchtung_power"],
+    )
+
+    source_manager.get_source_values.assert_called_once_with(
+        "virtual_beleuchtung_power",
+    )
+
+    sensor.update_value.assert_called_once_with(
+        [
+            SourceValue(
+                "sensor.power_1",
+                500,
+                "W",
+            ),
+            SourceValue(
+                "sensor.power_2",
+                250,
+                "W",
+            ),
+        ],
+    )
+
+
 def test_sensor_unique_id() -> None:
     """Test the sensor unique ID."""
     sensor = _create_sensor()

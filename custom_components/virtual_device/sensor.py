@@ -141,6 +141,22 @@ class VirtualSensorManager:
             if sensor._device.id == device_id:
                 await self.async_remove_entity(entity_id)
 
+    def update_entities(
+        self,
+        source_manager: SourceManager,
+        entity_ids: list[str],
+    ) -> None:
+        """Update virtual sensors after source relationships changed."""
+        for entity_id in entity_ids:
+            sensor = self._sensors.get(entity_id)
+
+            if sensor is None:
+                continue
+
+            sensor.update_value(
+                source_manager.get_source_values(entity_id),
+            )
+
     async def async_replace_entity(
         self,
         device: VirtualDevice,

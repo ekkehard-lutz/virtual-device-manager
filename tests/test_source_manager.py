@@ -1,5 +1,6 @@
 """Tests for the Virtual Device Manager source manager."""
 import asyncio
+from types import SimpleNamespace
 from unittest.mock import AsyncMock, MagicMock
 
 import pytest
@@ -1164,3 +1165,94 @@ def test_updated_source_keeps_other_cached_values() -> None:
             unit="W",
         ),
     ]
+
+
+@pytest.mark.asyncio
+async def test_async_reconcile_reports_changed_virtual_entities(monkeypatch) -> None:
+    """Report virtual entities whose source relationships changed."""
+    hass = MagicMock()
+
+    device = VirtualDevice(
+        id="device-1",
+        name="Beleuchtung",
+        label_ref="label-id-beleuchtung",
+        entities=[
+            VirtualEntity(
+                id="power",
+                device_class="power",
+                aggregation="sum",
+                unit="W",
+            ),
+        ],
+    )
+
+    from custom_components.virtual_device import source_manager
+
+    monkeypatch.setattr(
+        source_manager,
+        "get_source_entities",
+        lambda hass, label, device_class: [
+            "sensor.power_1",
+        ],
+    )
+
+    manager = SourceManager()
+    manager.rebuild_virtual_device(hass, device)
+
+    monkeypatch.setattr(
+        source_manager,
+        "get_source_entities",
+        lambda hass, label, device_class: [
+            "sensor.power_1",
+            "sensor.power_2",
+        ],
+    )
+
+    hass.states.get.side_effect = lambda entity_id: {
+        "sensor.power_1": SimpleNamespace(
+            state="100",
+            attributes={"unit_of_measurement": "W"},
+        ),
+        "sensor.power_2": SimpleNamespace(
+            state="50",
+            attributes={"unit_of_measurement": "W"},
+        ),
+    }.get(entity_id)
+
+    changed = await manager.async_reconcile(hass)
+
+    assert changed == ["power"]
+    assert manager.get_sources("power") == [
+        "sensor.power_1",
+        "sensor.power_2",
+    ]
+
+
+@pytest.mark.asyncio
+async def test_async_reconciliation_calls_callback_for_changed_entities() -> None:
+    """Notify the callback when source relationships change."""
+    callback = MagicMock()
+    manager = SourceManager(
+        reconciliation_interval=0.01,
+    )
+
+    manager.async_reconcile = AsyncMock(
+        return_value=["virtual_beleuchtung_power"],
+    )
+    manager._hass = MagicMock()
+    manager._on_reconciliation = callback
+
+    task = asyncio.create_task(
+        manager._async_reconciliation_loop(),
+    )
+
+    await asyncio.sleep(0.02)
+
+    task.cancel()
+
+    with pytest.raises(asyncio.CancelledError):
+        await task
+
+    callback.assert_called_with(
+        ["virtual_beleuchtung_power"],
+    )

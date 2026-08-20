@@ -155,6 +155,7 @@ async def test_setup_entry(
 
     source_manager.async_start.assert_awaited_once_with(
         hass,
+        sensor_manager.update_entities,
     )
 
     assert DOMAIN in hass.data

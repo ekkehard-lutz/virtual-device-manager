@@ -38,6 +38,7 @@ class SourceManager:
 
         self._reconciliation_task: asyncio.Task[None] | None = None
         self._hass: HomeAssistant | None = None
+        self._on_reconciliation = None
 
     @property
     def reconciliation_interval(self) -> float:
@@ -47,12 +48,14 @@ class SourceManager:
     async def async_start(
         self,
         hass: HomeAssistant,
+        on_reconciliation=None,
     ) -> None:
         """Start periodic source reconciliation."""
         if self._reconciliation_task is not None:
             return
 
         self._hass = hass
+        self._on_reconciliation = on_reconciliation
 
         if self._reconciliation_interval <= 0:
             return
@@ -85,7 +88,15 @@ class SourceManager:
                 await asyncio.sleep(self._reconciliation_interval)
 
                 if self._hass is not None:
-                    await self.async_reconcile(self._hass)
+                    changed_virtual_entity_ids = await self.async_reconcile(
+                        self._hass
+                    )
+
+                    if (
+                        changed_virtual_entity_ids
+                        and self._on_reconciliation is not None
+                    ):
+                        self._on_reconciliation(changed_virtual_entity_ids)
 
         except asyncio.CancelledError:
             raise
@@ -264,8 +275,11 @@ class SourceManager:
     async def async_reconcile(
         self,
         hass: HomeAssistant,
-    ) -> None:
+    ) -> list[str]:
         """Reconcile source relationships and cached values."""
+
+        changed_virtual_entity_ids: set[str] = set()
+
         for device in self._virtual_devices.values():
             for virtual_entity in device.entities:
                 virtual_entity_id = virtual_entity.id
@@ -280,15 +294,21 @@ class SourceManager:
                     )
                 )
 
+                removed_sources = current_sources - discovered_sources
+                added_sources = discovered_sources - current_sources
+
+                if removed_sources or added_sources:
+                    changed_virtual_entity_ids.add(virtual_entity_id)
+
                 # Remove sources that no longer match.
-                for source_entity_id in current_sources - discovered_sources:
+                for source_entity_id in removed_sources:
                     self.remove_source(
                         virtual_entity_id,
                         source_entity_id,
                     )
 
                 # Add newly matching sources.
-                for source_entity_id in discovered_sources - current_sources:
+                for source_entity_id in added_sources:
                     self.add_source(
                         virtual_entity_id,
                         source_entity_id,
@@ -325,6 +345,9 @@ class SourceManager:
             )
 
         self._source_values = reconciled_values
+
+        return sorted(changed_virtual_entity_ids)
+
 
     def get_affected_virtual_entities(
         self,
