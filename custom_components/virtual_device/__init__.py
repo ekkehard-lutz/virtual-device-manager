@@ -106,7 +106,10 @@ async def async_setup_entry(
         PLATFORMS,
     )
 
-    await source_manager.async_start(hass)
+    await source_manager.async_start(
+        hass,
+        sensor_manager.update_entities,
+    )
 
     return True
 
