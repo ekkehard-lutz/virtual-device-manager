@@ -3,7 +3,6 @@
 from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
-
 from homeassistant.const import EVENT_HOMEASSISTANT_STARTED
 
 from custom_components.virtual_device import (
