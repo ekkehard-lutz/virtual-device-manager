@@ -5,13 +5,7 @@ from homeassistant.helpers import device_registry, label_registry
 
 from .const import DOMAIN
 from .models import VirtualDevice, VirtualEntity
-
-SUPPORTED_AGGREGATIONS = {
-    "sum",
-    "avg",
-    "min",
-    "max",
-}
+from .validation import validate_virtual_entity
 
 
 class VirtualDeviceNameConflict(Exception):
@@ -67,36 +61,31 @@ def create_virtual_entity(
     device: VirtualDevice,
     device_class: str,
     aggregation: str,
-    unit: str,
     name: str | None = None,
 ) -> VirtualEntity:
     """Create a new virtual entity."""
-    validate_virtual_entity(
-        device_class,
-        aggregation,
-        unit,
-    )
-
     entity_id = generate_virtual_entity_id(
         device.id,
         device_class,
         device.entities,
     )
 
-    return VirtualEntity(
+    entity = VirtualEntity(
         id=entity_id,
         device_class=device_class,
         aggregation=aggregation,
-        unit=unit,
         name=name,
     )
+
+    validate_virtual_entity(entity)
+
+    return entity
 
 
 def add_virtual_entity(
     device: VirtualDevice,
     device_class: str,
     aggregation: str,
-    unit: str,
     name: str | None = None,
 ) -> VirtualDevice:
     """Add a new virtual entity to a virtual device."""
@@ -104,7 +93,6 @@ def add_virtual_entity(
         device=device,
         device_class=device_class,
         aggregation=aggregation,
-        unit=unit,
         name=name,
     )
 
@@ -123,9 +111,7 @@ def update_virtual_entity(
     device: VirtualDevice,
     entity_id: str,
     *,
-    device_class: str | None = None,
     aggregation: str | None = None,
-    unit: str | None = None,
     name: str | None = None,
 ) -> VirtualDevice:
     """Update an existing virtual entity."""
@@ -137,31 +123,20 @@ def update_virtual_entity(
     if existing_entity is None:
         raise ValueError(f"Virtual entity '{entity_id}' does not exist")
 
-    new_device_class = (
-        device_class if device_class is not None else existing_entity.device_class
-    )
-
     new_aggregation = (
         aggregation if aggregation is not None else existing_entity.aggregation
     )
 
-    new_unit = unit if unit is not None else existing_entity.unit
-
     new_name = name if name is not None else existing_entity.name
-
-    validate_virtual_entity(
-        new_device_class,
-        new_aggregation,
-        new_unit,
-    )
 
     updated_entity = VirtualEntity(
         id=existing_entity.id,
-        device_class=new_device_class,
+        device_class=existing_entity.device_class,
         aggregation=new_aggregation,
-        unit=new_unit,
         name=new_name,
     )
+
+    validate_virtual_entity(updated_entity)
 
     updated_entities = [
         updated_entity if entity.id == entity_id else entity
@@ -299,19 +274,3 @@ def update_virtual_device(
         name=new_name,
         entities=device.entities.copy(),
     )
-
-
-def validate_virtual_entity(
-    device_class: str,
-    aggregation: str,
-    unit: str,
-) -> None:
-    """Validate virtual entity configuration."""
-    if not device_class:
-        raise ValueError("Device class must not be empty")
-
-    if aggregation not in SUPPORTED_AGGREGATIONS:
-        raise ValueError(f"Unsupported aggregation: {aggregation}")
-
-    if not unit:
-        raise ValueError("Unit must not be empty")

@@ -10,7 +10,7 @@ from homeassistant.core import Event, HomeAssistant, State
 from homeassistant.helpers.entity import DeviceInfo
 
 from .aggregator import SourceValue, aggregate_values
-from .const import DOMAIN
+from .const import DOMAIN, SUPPORTED_DEVICE_CLASSES
 from .lifecycle import virtual_entity_unique_id
 from .models import VirtualDevice, VirtualEntity
 from .source_manager import SourceManager
@@ -37,7 +37,9 @@ class VirtualDeviceSensor(SensorEntity):
         )
 
         self._attr_device_class = entity.device_class
-        self._attr_native_unit_of_measurement = entity.unit
+        self._attr_native_unit_of_measurement = SUPPORTED_DEVICE_CLASSES[
+            entity.device_class
+        ]
         self._attr_native_value = None
 
     def update_value(
@@ -50,7 +52,6 @@ class VirtualDeviceSensor(SensorEntity):
             values,
             self._virtual_entity.device_class,
             self._virtual_entity.aggregation,
-            self._virtual_entity.unit,
         )
 
         if write_state:
