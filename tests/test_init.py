@@ -1,8 +1,10 @@
 """Tests for Virtual Device Manager integration setup."""
 
-from unittest.mock import AsyncMock, MagicMock
+from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
+
+from homeassistant.const import EVENT_HOMEASSISTANT_STARTED
 
 from custom_components.virtual_device import (
     async_setup,
@@ -153,9 +155,20 @@ async def test_setup_entry(
 
     lifecycle_manager.async_reconcile.assert_awaited_once_with([])
 
-    source_manager.async_start.assert_awaited_once_with(
-        hass,
-        sensor_manager.update_entities,
+    source_manager.async_start.assert_awaited_once()
+
+    start_args = source_manager.async_start.await_args.args
+
+    assert start_args[0] is hass
+    assert callable(start_args[1])
+
+    sensor_manager.update_entities = MagicMock()
+
+    start_args[1](["virtual_beleuchtung_power"])
+
+    sensor_manager.update_entities.assert_called_once_with(
+        source_manager,
+        ["virtual_beleuchtung_power"],
     )
 
     assert DOMAIN in hass.data
@@ -165,6 +178,68 @@ async def test_setup_entry(
 
     assert entry_data["storage"] is storage
     assert entry_data["source_manager"] is source_manager
+
+
+@pytest.mark.asyncio
+async def test_setup_entry_reconciles_after_homeassistant_started() -> None:
+    """Reconcile sources after Home Assistant has completed startup."""
+    hass = MagicMock()
+
+    entry = MagicMock()
+    entry.entry_id = "test"
+
+    storage = MagicMock()
+    storage.async_load = AsyncMock()
+
+    source_manager = MagicMock()
+    source_manager.async_start = AsyncMock()
+    source_manager.async_reconcile = AsyncMock(
+        return_value=["virtual_beleuchtung_power"],
+    )
+
+    sensor_manager = MagicMock()
+
+    with patch(
+        "custom_components.virtual_device.VirtualDeviceStorage",
+        return_value=storage,
+    ), patch(
+        "custom_components.virtual_device.SourceManager",
+        return_value=source_manager,
+    ), patch(
+        "custom_components.virtual_device.VirtualSensorManager",
+        return_value=sensor_manager,
+    ), patch(
+        "custom_components.virtual_device.async_register_virtual_device_services",
+        new_callable=AsyncMock,
+    ), patch(
+        "custom_components.virtual_device.async_register_websocket_commands",
+        new_callable=AsyncMock,
+    ):
+        hass.config_entries.async_forward_entry_setups = AsyncMock()
+
+        listeners = []
+
+        def async_listen_once(event_type, callback):
+            listeners.append((event_type, callback))
+            return MagicMock()
+
+        hass.bus.async_listen_once = async_listen_once
+
+        await async_setup_entry(hass, entry)
+
+    assert len(listeners) == 1
+    event_type, callback = listeners[0]
+
+    assert event_type == EVENT_HOMEASSISTANT_STARTED
+
+    await callback(MagicMock())
+
+    source_manager.async_reconcile.assert_awaited_once_with(hass)
+
+    sensor_manager.update_entities.assert_called_once_with(
+        source_manager,
+        ["virtual_beleuchtung_power"],
+    )
 
 
 @pytest.mark.asyncio

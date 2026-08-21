@@ -7,6 +7,7 @@ from pathlib import Path
 from homeassistant.components import panel_custom
 from homeassistant.components.http import StaticPathConfig
 from homeassistant.config_entries import ConfigEntry
+from homeassistant.const import EVENT_HOMEASSISTANT_STARTED
 from homeassistant.core import HomeAssistant
 
 from .const import (
@@ -106,9 +107,30 @@ async def async_setup_entry(
         PLATFORMS,
     )
 
+
+    async def _handle_homeassistant_started(event) -> None:
+        """Perform the initial source reconciliation after Home Assistant startup."""
+        changed_entity_ids = await source_manager.async_reconcile(hass)
+
+        if changed_entity_ids:
+            sensor_manager.update_entities(
+                source_manager,
+                changed_entity_ids,
+            )
+
+
+    hass.bus.async_listen_once(
+        EVENT_HOMEASSISTANT_STARTED,
+        _handle_homeassistant_started,
+    )
+
+
     await source_manager.async_start(
         hass,
-        sensor_manager.update_entities,
+        lambda entity_ids: sensor_manager.update_entities(
+            source_manager,
+            entity_ids,
+        ),
     )
 
     return True
