@@ -20,10 +20,9 @@ def test_sum() -> None:
         values,
         device_class="power",
         aggregation="sum",
-        target_unit="kW",
     )
 
-    assert result == 2.0
+    assert result == 2000.0
 
 
 def test_average() -> None:
@@ -38,10 +37,9 @@ def test_average() -> None:
         values,
         device_class="power",
         aggregation="avg",
-        target_unit="kW",
     )
 
-    assert result == pytest.approx(0.6666666667)
+    assert result == pytest.approx(666.6666666667)
 
 
 def test_minimum() -> None:
@@ -56,10 +54,9 @@ def test_minimum() -> None:
         values,
         device_class="power",
         aggregation="min",
-        target_unit="kW",
     )
 
-    assert result == 0.5
+    assert result == 500.0
 
 
 def test_maximum() -> None:
@@ -74,10 +71,9 @@ def test_maximum() -> None:
         values,
         device_class="power",
         aggregation="max",
-        target_unit="kW",
     )
 
-    assert result == 1.0
+    assert result == 1000.0
 
 
 def test_negative_values() -> None:
@@ -91,10 +87,9 @@ def test_negative_values() -> None:
         values,
         device_class="power",
         aggregation="sum",
-        target_unit="kW",
     )
 
-    assert result == 0.5
+    assert result == 500.0
 
 
 def test_empty_values() -> None:
@@ -103,7 +98,22 @@ def test_empty_values() -> None:
         [],
         device_class="power",
         aggregation="sum",
-        target_unit="kW",
     )
 
     assert result is None
+
+
+def test_power_aggregation_uses_native_unit() -> None:
+    """Test power aggregation uses the VDM native unit."""
+    values = [
+        SourceValue("sensor.test_1", 1, "kW"),
+        SourceValue("sensor.test_2", 500, "W"),
+    ]
+
+    result = aggregate_values(
+        values,
+        device_class="power",
+        aggregation="sum",
+    )
+
+    assert result == 1500.0

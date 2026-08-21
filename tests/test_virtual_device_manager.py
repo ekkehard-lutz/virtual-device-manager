@@ -268,7 +268,6 @@ async def test_add_virtual_entity_saves_updated_device() -> None:
                 id="virtual_beleuchtung_power",
                 device_class="power",
                 aggregation="sum",
-                unit="W",
             ),
         ],
     )
@@ -319,7 +318,6 @@ async def test_update_virtual_entity_saves_updated_device() -> None:
                 id="virtual_beleuchtung_power",
                 device_class="power",
                 aggregation="sum",
-                unit="W",
             ),
         ],
     )
@@ -333,7 +331,6 @@ async def test_update_virtual_entity_saves_updated_device() -> None:
                 id="virtual_beleuchtung_power",
                 device_class="power",
                 aggregation="avg",
-                unit="W",
             ),
         ],
     )
@@ -381,7 +378,6 @@ async def test_delete_virtual_entity_saves_updated_device() -> None:
                 id="virtual_beleuchtung_power",
                 device_class="power",
                 aggregation="sum",
-                unit="W",
             ),
         ],
     )

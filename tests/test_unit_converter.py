@@ -67,4 +67,23 @@ def test_decimal_conversion() -> None:
 def test_milliwatt_to_watt() -> None:
     """Test mW to W conversion."""
     assert convert_value(5000, "power", "mW", "W") == 5.0
-    
+
+
+def test_celsius_to_fahrenheit() -> None:
+    """Test temperature conversion via Home Assistant."""
+    result = convert_value(20, "temperature", "°C", "°F")
+
+    assert result == pytest.approx(68.0)
+
+
+def test_fahrenheit_to_celsius() -> None:
+    """Test temperature conversion via Home Assistant."""
+    result = convert_value(68, "temperature", "°F", "°C")
+
+    assert result == pytest.approx(20.0)
+
+
+def test_missing_device_class_converter() -> None:
+    """Test missing Home Assistant unit converter."""
+    with pytest.raises(ValueError, match="No unit converter"):
+        convert_value(100, "foobar", "W", "kW")

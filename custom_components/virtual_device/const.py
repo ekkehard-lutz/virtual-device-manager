@@ -16,3 +16,8 @@ AGGREGATIONS: tuple[str, ...] = (
     "min",
     "max",
 )
+
+SUPPORTED_DEVICE_CLASSES: dict[str, str | None] = {
+    "power": "W",
+    "energy": "Wh",
+}

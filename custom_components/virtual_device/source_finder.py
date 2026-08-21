@@ -24,20 +24,13 @@ def get_entities_for_label(
             entries = entities
 
         return sorted(
-            entity.entity_id
-            for entity in entries
-            if label_ref in entity.labels
+            entity.entity_id for entity in entries if label_ref in entity.labels
         )
 
     return sorted(
         entity_id
-        for entity_id in (
-            state.entity_id
-            for state in hass.states.async_all()
-        )
-        if (
-            entity := entity_registry.async_get(entity_id)
-        ) is not None
+        for entity_id in (state.entity_id for state in hass.states.async_all())
+        if (entity := entity_registry.async_get(entity_id)) is not None
         and label_ref in entity.labels
     )
 

@@ -479,7 +479,6 @@ def test_generate_virtual_entity_id_uses_suffix_for_second_entity() -> None:
             id="virtual_beleuchtung_power",
             device_class="power",
             aggregation="sum",
-            unit="W",
         ),
     ]
 
@@ -499,13 +498,11 @@ def test_generate_virtual_entity_id_uses_next_free_suffix() -> None:
             id="virtual_beleuchtung_power",
             device_class="power",
             aggregation="sum",
-            unit="W",
         ),
         VirtualEntity(
             id="virtual_beleuchtung_power_1",
             device_class="power",
             aggregation="avg",
-            unit="W",
         ),
     ]
 
@@ -525,7 +522,6 @@ def test_generate_virtual_entity_id_different_device_class() -> None:
             id="virtual_beleuchtung_power",
             device_class="power",
             aggregation="sum",
-            unit="W",
         ),
     ]
 
@@ -552,9 +548,11 @@ def test_validate_virtual_entity_accepts_supported_aggregation(
 ) -> None:
     """Accept all supported aggregation modes."""
     validate_virtual_entity(
-        "power",
-        aggregation,
-        "W",
+        VirtualEntity(
+            id="test",
+            device_class="power",
+            aggregation=aggregation,
+        )
     )
 
 
@@ -565,9 +563,11 @@ def test_validate_virtual_entity_rejects_unsupported_aggregation() -> None:
         match="Unsupported aggregation",
     ):
         validate_virtual_entity(
-            "power",
-            "median",
-            "W",
+            VirtualEntity(
+                id="test",
+                device_class="power",
+                aggregation="median",
+            )
         )
 
 
@@ -578,22 +578,11 @@ def test_validate_virtual_entity_rejects_empty_device_class() -> None:
         match="Device class must not be empty",
     ):
         validate_virtual_entity(
-            "",
-            "sum",
-            "W",
-        )
-
-
-def test_validate_virtual_entity_rejects_empty_unit() -> None:
-    """Reject an empty unit."""
-    with pytest.raises(
-        ValueError,
-        match="Unit must not be empty",
-    ):
-        validate_virtual_entity(
-            "power",
-            "sum",
-            "",
+            VirtualEntity(
+                id="test",
+                device_class="",
+                aggregation="sum",
+            )
         )
 
 
@@ -609,13 +598,12 @@ def test_create_virtual_entity_uses_base_id() -> None:
         device=device,
         device_class="power",
         aggregation="sum",
-        unit="W",
     )
 
     assert entity.id == ("virtual_beleuchtung_power")
     assert entity.device_class == "power"
     assert entity.aggregation == "sum"
-    assert entity.unit == "W"
+    assert not hasattr(entity, "unit")
     assert entity.name == "power"
 
 
@@ -630,7 +618,6 @@ def test_create_virtual_entity_uses_suffix() -> None:
                 id="virtual_beleuchtung_power",
                 device_class="power",
                 aggregation="sum",
-                unit="W",
             ),
         ],
     )
@@ -639,7 +626,6 @@ def test_create_virtual_entity_uses_suffix() -> None:
         device=device,
         device_class="power",
         aggregation="avg",
-        unit="W",
     )
 
     assert entity.id == ("virtual_beleuchtung_power_1")
@@ -656,7 +642,6 @@ def test_create_virtual_entity_uses_base_id_for_different_class() -> None:
                 id="virtual_beleuchtung_power",
                 device_class="power",
                 aggregation="sum",
-                unit="W",
             ),
         ],
     )
@@ -665,7 +650,6 @@ def test_create_virtual_entity_uses_base_id_for_different_class() -> None:
         device=device,
         device_class="energy",
         aggregation="sum",
-        unit="kWh",
     )
 
     assert entity.id == ("virtual_beleuchtung_energy")
@@ -682,13 +666,11 @@ def test_create_virtual_entity_uses_next_free_suffix() -> None:
                 id="virtual_beleuchtung_power",
                 device_class="power",
                 aggregation="sum",
-                unit="W",
             ),
             VirtualEntity(
                 id="virtual_beleuchtung_power_1",
                 device_class="power",
                 aggregation="avg",
-                unit="W",
             ),
         ],
     )
@@ -697,7 +679,6 @@ def test_create_virtual_entity_uses_next_free_suffix() -> None:
         device=device,
         device_class="power",
         aggregation="max",
-        unit="W",
     )
 
     assert entity.id == ("virtual_beleuchtung_power_2")
@@ -715,7 +696,6 @@ def test_create_virtual_entity_keeps_explicit_name() -> None:
         device=device,
         device_class="power",
         aggregation="sum",
-        unit="W",
         name="Gesamtleistung",
     )
 
@@ -734,7 +714,6 @@ def test_create_virtual_entity_does_not_modify_device() -> None:
         device=device,
         device_class="power",
         aggregation="sum",
-        unit="W",
     )
 
     assert entity not in device.entities
@@ -753,7 +732,6 @@ def test_add_virtual_entity_adds_entity() -> None:
         device=device,
         device_class="power",
         aggregation="sum",
-        unit="W",
     )
 
     assert len(updated.entities) == 1
@@ -766,7 +744,6 @@ def test_add_virtual_entity_keeps_existing_entities() -> None:
         id="virtual_beleuchtung_power",
         device_class="power",
         aggregation="sum",
-        unit="W",
     )
 
     device = VirtualDevice(
@@ -780,7 +757,6 @@ def test_add_virtual_entity_keeps_existing_entities() -> None:
         device=device,
         device_class="energy",
         aggregation="sum",
-        unit="kWh",
     )
 
     assert [entity.id for entity in updated.entities] == [
@@ -801,7 +777,6 @@ def test_add_virtual_entity_does_not_modify_original_device() -> None:
         device=device,
         device_class="power",
         aggregation="sum",
-        unit="W",
     )
 
     assert device.entities == []
@@ -815,7 +790,6 @@ def test_update_virtual_entity_changes_values() -> None:
         id="virtual_beleuchtung_power",
         device_class="power",
         aggregation="sum",
-        unit="W",
         name="Gesamtleistung",
     )
 
@@ -838,7 +812,7 @@ def test_update_virtual_entity_changes_values() -> None:
     assert updated_entity.id == ("virtual_beleuchtung_power")
     assert updated_entity.device_class == "power"
     assert updated_entity.aggregation == "avg"
-    assert updated_entity.unit == "W"
+    assert not hasattr(updated_entity, "unit")
     assert updated_entity.name == "Durchschnittsleistung"
 
 
@@ -848,7 +822,6 @@ def test_update_virtual_entity_keeps_id() -> None:
         id="virtual_beleuchtung_power_1",
         device_class="power",
         aggregation="sum",
-        unit="W",
     )
 
     device = VirtualDevice(
@@ -861,9 +834,6 @@ def test_update_virtual_entity_keeps_id() -> None:
     updated = update_virtual_entity(
         device=device,
         entity_id="virtual_beleuchtung_power_1",
-        device_class="power",
-        aggregation="max",
-        unit="kW",
     )
 
     assert updated.entities[0].id == ("virtual_beleuchtung_power_1")
@@ -875,7 +845,6 @@ def test_update_virtual_entity_keeps_unspecified_values() -> None:
         id="virtual_beleuchtung_power",
         device_class="power",
         aggregation="sum",
-        unit="W",
         name="Gesamtleistung",
     )
 
@@ -896,7 +865,6 @@ def test_update_virtual_entity_keeps_unspecified_values() -> None:
 
     assert updated_entity.device_class == "power"
     assert updated_entity.aggregation == "sum"
-    assert updated_entity.unit == "W"
     assert updated_entity.name == "Neue Leistung"
 
 
@@ -925,7 +893,6 @@ def test_update_virtual_entity_validates_new_values() -> None:
         id="virtual_beleuchtung_power",
         device_class="power",
         aggregation="sum",
-        unit="W",
     )
 
     device = VirtualDevice(
@@ -952,7 +919,6 @@ def test_update_virtual_entity_does_not_modify_original() -> None:
         id="virtual_beleuchtung_power",
         device_class="power",
         aggregation="sum",
-        unit="W",
         name="Alt",
     )
 
@@ -980,7 +946,6 @@ def test_delete_virtual_entity_removes_entity() -> None:
         id="virtual_beleuchtung_power",
         device_class="power",
         aggregation="sum",
-        unit="W",
     )
 
     device = VirtualDevice(
@@ -1004,14 +969,12 @@ def test_delete_virtual_entity_keeps_other_entities() -> None:
         id="virtual_beleuchtung_power",
         device_class="power",
         aggregation="sum",
-        unit="W",
     )
 
     energy = VirtualEntity(
         id="virtual_beleuchtung_energy",
         device_class="energy",
         aggregation="sum",
-        unit="kWh",
     )
 
     device = VirtualDevice(
@@ -1053,7 +1016,6 @@ def test_delete_virtual_entity_does_not_modify_original() -> None:
         id="virtual_beleuchtung_power",
         device_class="power",
         aggregation="sum",
-        unit="W",
     )
 
     device = VirtualDevice(
@@ -1071,3 +1033,28 @@ def test_delete_virtual_entity_does_not_modify_original() -> None:
     assert device.entities == [entity]
     assert updated.entities == []
     assert updated is not device
+
+
+def test_update_virtual_entity_keeps_device_class() -> None:
+    """Device class cannot be changed when updating an entity."""
+    entity = VirtualEntity(
+        id="virtual_beleuchtung_power",
+        device_class="power",
+        aggregation="sum",
+    )
+
+    device = VirtualDevice(
+        id="virtual_beleuchtung",
+        label_ref="beleuchtung",
+        name="Beleuchtung",
+        entities=[entity],
+    )
+
+    updated = update_virtual_entity(
+        device=device,
+        entity_id="virtual_beleuchtung_power",
+        aggregation="avg",
+    )
+
+    assert updated.entities[0].device_class == "power"
+    assert updated.entities[0].aggregation == "avg"

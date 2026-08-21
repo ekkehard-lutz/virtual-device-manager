@@ -88,9 +88,7 @@ class SourceManager:
                 await asyncio.sleep(self._reconciliation_interval)
 
                 if self._hass is not None:
-                    changed_virtual_entity_ids = await self.async_reconcile(
-                        self._hass
-                    )
+                    changed_virtual_entity_ids = await self.async_reconcile(self._hass)
 
                     if (
                         changed_virtual_entity_ids
@@ -347,7 +345,6 @@ class SourceManager:
         self._source_values = reconciled_values
 
         return sorted(changed_virtual_entity_ids)
-
 
     def get_affected_virtual_entities(
         self,

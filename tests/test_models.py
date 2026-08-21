@@ -23,7 +23,6 @@ def test_virtual_entity_defaults() -> None:
         id="test-entity",
         device_class="power",
         aggregation="sum",
-        unit="kW",
     )
 
     assert entity.name == "power"
@@ -35,7 +34,6 @@ def test_virtual_device_with_entity() -> None:
         id="test-entity",
         device_class="power",
         aggregation="sum",
-        unit="kW",
     )
 
     device = VirtualDevice(
@@ -50,3 +48,13 @@ def test_virtual_device_with_entity() -> None:
     assert len(device.entities) == 1
     assert device.entities[0].device_class == "power"
 
+
+def test_virtual_entity_has_no_configured_unit() -> None:
+    """Virtual entity does not contain a configured unit."""
+    entity = VirtualEntity(
+        id="test",
+        device_class="power",
+        aggregation="sum",
+    )
+
+    assert not hasattr(entity, "unit")

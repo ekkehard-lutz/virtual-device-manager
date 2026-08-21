@@ -22,7 +22,6 @@ def _serialize_virtual_entity(entity) -> dict:
         "id": entity.id,
         "device_class": entity.device_class,
         "aggregation": entity.aggregation,
-        "unit": entity.unit,
         "name": entity.name,
     }
 
@@ -188,7 +187,6 @@ async def async_register_websocket_commands(
             "device_id": msg["device_id"],
             "device_class": msg["device_class"],
             "aggregation": msg["aggregation"],
-            "unit": msg["unit"],
             "name": msg.get("name"),
         }
 

@@ -2,6 +2,7 @@
 
 import pytest
 
+from custom_components.virtual_device.const import SUPPORTED_DEVICE_CLASSES
 from custom_components.virtual_device.models import (
     VirtualDevice,
     VirtualEntity,
@@ -10,10 +11,28 @@ from custom_components.virtual_device.validation import (
     ValidationError,
     can_convert_unit,
     is_valid_aggregation,
+    is_valid_device_class,
     is_valid_unit_for_device_class,
     validate_virtual_device,
     validate_virtual_entity,
 )
+
+
+def test_valid_device_class() -> None:
+    """Test supported device classes."""
+    assert is_valid_device_class("power")
+    assert is_valid_device_class("energy")
+
+
+def test_invalid_device_class() -> None:
+    """Test unsupported device class."""
+    assert not is_valid_device_class("foobar")
+
+
+def test_device_class_has_native_unit() -> None:
+    """Test native units for supported device classes."""
+    assert SUPPORTED_DEVICE_CLASSES["power"] == "W"
+    assert SUPPORTED_DEVICE_CLASSES["energy"] == "Wh"
 
 
 def test_valid_power_unit() -> None:
@@ -79,10 +98,24 @@ def test_valid_virtual_entity() -> None:
         id="test",
         device_class="power",
         aggregation="sum",
-        unit="kW",
     )
 
     validate_virtual_entity(entity)
+
+
+def test_invalid_virtual_entity_device_class() -> None:
+    """Test unsupported device class."""
+    entity = VirtualEntity(
+        id="test",
+        device_class="foobar",
+        aggregation="sum",
+    )
+
+    with pytest.raises(
+        ValidationError,
+        match="Unsupported device class",
+    ):
+        validate_virtual_entity(entity)
 
 
 def test_invalid_virtual_entity_aggregation() -> None:
@@ -91,36 +124,9 @@ def test_invalid_virtual_entity_aggregation() -> None:
         id="test",
         device_class="power",
         aggregation="median",
-        unit="kW",
     )
 
     with pytest.raises(ValidationError, match="Unsupported aggregation"):
-        validate_virtual_entity(entity)
-
-
-def test_invalid_virtual_entity_unit() -> None:
-    """Test invalid unit for device class."""
-    entity = VirtualEntity(
-        id="test",
-        device_class="power",
-        aggregation="sum",
-        unit="kWh",
-    )
-
-    with pytest.raises(ValidationError, match="not valid"):
-        validate_virtual_entity(entity)
-
-
-def test_missing_virtual_entity_unit() -> None:
-    """Test missing unit."""
-    entity = VirtualEntity(
-        id="test",
-        device_class="power",
-        aggregation="sum",
-        unit="",
-    )
-
-    with pytest.raises(ValidationError, match="Unit must not be empty"):
         validate_virtual_entity(entity)
 
 
@@ -134,7 +140,6 @@ def test_valid_virtual_device() -> None:
                 id="power",
                 device_class="power",
                 aggregation="sum",
-                unit="kW",
             ),
         ],
     )
@@ -169,14 +174,12 @@ def test_duplicate_virtual_entity_id() -> None:
         id="power",
         device_class="power",
         aggregation="sum",
-        unit="kW",
     )
 
     entity2 = VirtualEntity(
         id="power",
         device_class="power",
         aggregation="max",
-        unit="kW",
     )
 
     device = VirtualDevice(

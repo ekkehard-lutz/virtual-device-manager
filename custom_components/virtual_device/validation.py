@@ -5,35 +5,30 @@ from homeassistant.components.sensor.const import (
     UNIT_CONVERTERS,
 )
 
-from .const import AGGREGATIONS
+from .const import AGGREGATIONS, SUPPORTED_DEVICE_CLASSES
 from .models import VirtualDevice, VirtualEntity
 
 
 class ValidationError(ValueError):
     """Raised when Virtual Device Manager configuration is invalid."""
 
+
+def is_valid_device_class(device_class: str) -> bool:
+    """Return whether a device class is supported by the VDM."""
+    return device_class in SUPPORTED_DEVICE_CLASSES
+
+
 def validate_virtual_entity(entity: VirtualEntity) -> None:
     """Validate a virtual entity configuration."""
     if not entity.device_class:
         raise ValidationError("Device class must not be empty.")
 
+    if not is_valid_device_class(entity.device_class):
+        raise ValidationError(f"Unsupported device class: {entity.device_class}")
+
     if not is_valid_aggregation(entity.aggregation):
-        raise ValidationError(
-            f"Unsupported aggregation: {entity.aggregation}"
-        )
+        raise ValidationError(f"Unsupported aggregation: {entity.aggregation}")
 
-    if not entity.unit:
-        raise ValidationError("Unit must not be empty.")
-
-    if not is_valid_unit_for_device_class(
-        entity.device_class,
-        entity.unit,
-    ):
-        raise ValidationError(
-            f"Unit '{entity.unit}' is not valid for "
-            f"device class '{entity.device_class}'."
-        )
-    
 
 def is_valid_unit_for_device_class(
     device_class: str,
@@ -62,10 +57,7 @@ def can_convert_unit(
     if converter is None:
         return False
 
-    return (
-        from_unit in converter.VALID_UNITS
-        and to_unit in converter.VALID_UNITS
-    )
+    return from_unit in converter.VALID_UNITS and to_unit in converter.VALID_UNITS
 
 
 def is_valid_aggregation(aggregation: str) -> bool:
@@ -82,9 +74,7 @@ def validate_virtual_device(device: VirtualDevice) -> None:
 
     for entity in device.entities:
         if entity.id in entity_ids:
-            raise ValidationError(
-                f"Duplicate virtual entity ID: {entity.id}"
-            )
+            raise ValidationError(f"Duplicate virtual entity ID: {entity.id}")
 
         entity_ids.add(entity.id)
 
