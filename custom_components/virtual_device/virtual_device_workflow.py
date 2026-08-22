@@ -227,26 +227,17 @@ def update_virtual_device(
     confirm_physical_name_conflict: bool = False,
 ) -> VirtualDevice:
     """Update an existing virtual device."""
+    if label_ref is not None and label_ref != device.label_ref:
+        raise ValueError("Label cannot be changed")
+
     registry = label_registry.async_get(hass)
 
-    new_label_ref = label_ref if label_ref is not None else device.label_ref
-
-    label_entry = registry.async_get_label(new_label_ref)
+    label_entry = registry.async_get_label(device.label_ref)
 
     if label_entry is None:
-        raise ValueError(f"Label '{new_label_ref}' does not exist")
+        raise ValueError(f"Label '{device.label_ref}' does not exist")
 
     new_name = name if name is not None else device.name
-
-    # A label can only be assigned to one virtual device.
-    # The current device itself is allowed to keep its label.
-    if any(
-        other.id != device.id and other.label_ref == new_label_ref
-        for other in existing_virtual_devices
-    ):
-        raise VirtualDeviceLabelConflict(
-            f"Label '{new_label_ref}' is already assigned to another virtual device"
-        )
 
     # A virtual device must never have the same name
     # as another virtual device.
@@ -270,7 +261,7 @@ def update_virtual_device(
 
     return VirtualDevice(
         id=device.id,
-        label_ref=new_label_ref,
+        label_ref=device.label_ref,
         name=new_name,
         entities=device.entities.copy(),
     )

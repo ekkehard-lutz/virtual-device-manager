@@ -7,6 +7,13 @@ export async function loadVirtualDevices(hass) {
 }
 
 
+export async function loadEntityConfig(hass) {
+  return await hass.callWS({
+    type: "virtual_device/get_entity_config",
+  });
+}
+
+
 export async function loadLabels(hass) {
   const result = await hass.callWS({
     type: "config/label_registry/list",

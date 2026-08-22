@@ -277,8 +277,8 @@ def test_update_virtual_device_keeps_same_name() -> None:
     assert updated.label_ref == "label-id-energie"
 
 
-def test_update_virtual_device_keeps_id_when_label_changes() -> None:
-    """Allow moving a virtual device to another label."""
+def test_update_virtual_device_keeps_label_unchanged() -> None:
+    """Keep the original label when updating a virtual device."""
     hass = MagicMock()
 
     device = VirtualDevice(
@@ -288,8 +288,8 @@ def test_update_virtual_device_keeps_id_when_label_changes() -> None:
     )
 
     label_entry = MagicMock()
-    label_entry.label_id = "label-id-heizung"
-    label_entry.name = "Heizung"
+    label_entry.label_id = "label-id-energie"
+    label_entry.name = "Energie"
 
     label_registry = MagicMock()
     label_registry.async_get_label.return_value = label_entry
@@ -299,16 +299,13 @@ def test_update_virtual_device_keeps_id_when_label_changes() -> None:
         "label_registry.async_get",
         return_value=label_registry,
     ):
-        updated = update_virtual_device(
-            hass=hass,
-            device=device,
-            existing_virtual_devices=[device],
-            label_ref="label-id-heizung",
-        )
-
-    assert updated.id == "virtual_label-id-energie"
-    assert updated.name == "Haus Energie"
-    assert updated.label_ref == "label-id-heizung"
+        with pytest.raises(ValueError, match="Label cannot be changed"):
+            update_virtual_device(
+                hass=hass,
+                device=device,
+                existing_virtual_devices=[device],
+                label_ref="label-id-heizung",
+            )
 
 
 def test_update_virtual_device_keeps_id_when_label_is_unchanged() -> None:
@@ -343,45 +340,6 @@ def test_update_virtual_device_keeps_id_when_label_is_unchanged() -> None:
     assert updated.id == "virtual_label-id-energie"
     assert updated.label_ref == "label-id-energie"
     assert updated.name == "Neue Energie"
-
-
-def test_update_virtual_device_rejects_other_virtual_device_label() -> None:
-    """Reject moving to a label assigned to another virtual device."""
-    hass = MagicMock()
-
-    device = VirtualDevice(
-        id="device-1",
-        label_ref="label-id-energie",
-        name="Haus Energie",
-    )
-
-    other_device = VirtualDevice(
-        id="device-2",
-        label_ref="label-id-heizung",
-        name="Heizung",
-    )
-
-    label_entry = MagicMock()
-    label_entry.label_id = "label-id-heizung"
-    label_entry.name = "Heizung"
-
-    label_registry = MagicMock()
-    label_registry.async_get_label.return_value = label_entry
-
-    with patch(
-        "custom_components.virtual_device.virtual_device_workflow.label_registry.async_get",
-        return_value=label_registry,
-    ):
-        with pytest.raises(VirtualDeviceLabelConflict):
-            update_virtual_device(
-                hass=hass,
-                device=device,
-                existing_virtual_devices=[
-                    device,
-                    other_device,
-                ],
-                label_ref="label-id-heizung",
-            )
 
 
 def test_update_virtual_device_rejects_other_virtual_device_name() -> None:

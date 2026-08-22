@@ -1,6 +1,7 @@
 import {
   loadVirtualDevices,
   loadLabels,
+  loadEntityConfig,
   deleteVirtualDevice,
   addVirtualEntity,
   updateVirtualEntity,
@@ -509,9 +510,14 @@ class VirtualDeviceManager
 
   async _openAddEntityDialog(device) {
     try {
+      const entityConfig = await loadEntityConfig(
+        this._hass,
+      );
+
       await openCreateVirtualEntityDialog(
         this,
         device,
+        entityConfig,
         async () => {
           await this._loadDevices();
         },
@@ -532,10 +538,15 @@ class VirtualDeviceManager
     entity,
   ) {
     try {
+      const entityConfig = await loadEntityConfig(
+        this._hass,
+      );
+
       await openEditVirtualEntityDialog(
         this,
         device,
         entity,
+        entityConfig,
         async () => {
           await this._loadDevices();
         },
