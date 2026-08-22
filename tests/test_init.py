@@ -198,21 +198,27 @@ async def test_setup_entry_reconciles_after_homeassistant_started() -> None:
 
     sensor_manager = MagicMock()
 
-    with patch(
-        "custom_components.virtual_device.VirtualDeviceStorage",
-        return_value=storage,
-    ), patch(
-        "custom_components.virtual_device.SourceManager",
-        return_value=source_manager,
-    ), patch(
-        "custom_components.virtual_device.VirtualSensorManager",
-        return_value=sensor_manager,
-    ), patch(
-        "custom_components.virtual_device.async_register_virtual_device_services",
-        new_callable=AsyncMock,
-    ), patch(
-        "custom_components.virtual_device.async_register_websocket_commands",
-        new_callable=AsyncMock,
+    with (
+        patch(
+            "custom_components.virtual_device.VirtualDeviceStorage",
+            return_value=storage,
+        ),
+        patch(
+            "custom_components.virtual_device.SourceManager",
+            return_value=source_manager,
+        ),
+        patch(
+            "custom_components.virtual_device.VirtualSensorManager",
+            return_value=sensor_manager,
+        ),
+        patch(
+            "custom_components.virtual_device.async_register_virtual_device_services",
+            new_callable=AsyncMock,
+        ),
+        patch(
+            "custom_components.virtual_device.async_register_websocket_commands",
+            new_callable=AsyncMock,
+        ),
     ):
         hass.config_entries.async_forward_entry_setups = AsyncMock()
 

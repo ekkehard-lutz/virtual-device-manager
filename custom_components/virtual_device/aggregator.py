@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 
+from .const import SUPPORTED_DEVICE_CLASSES
 from .unit_converter import convert_value
 
 
@@ -20,11 +21,15 @@ def aggregate_values(
     values: list[SourceValue],
     device_class: str,
     aggregation: str,
-    target_unit: str,
 ) -> float | None:
-    """Aggregate source values and return the result in the target unit."""
+    """Aggregate source values in the native unit of the device class."""
     if not values:
         return None
+
+    target_unit = SUPPORTED_DEVICE_CLASSES.get(device_class)
+
+    if target_unit is None:
+        raise ValueError(f"No native unit defined for device class '{device_class}'")
 
     converted_values = [
         convert_value(

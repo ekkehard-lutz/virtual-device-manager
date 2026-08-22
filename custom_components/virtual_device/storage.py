@@ -19,7 +19,6 @@ def _virtual_entity_to_dict(
         "name": entity.name,
         "device_class": entity.device_class,
         "aggregation": entity.aggregation,
-        "unit": entity.unit,
     }
 
 
@@ -33,7 +32,6 @@ def _virtual_entity_from_dict(
         name=data.get("name"),
         device_class=data["device_class"],
         aggregation=data["aggregation"],
-        unit=data["unit"],
     )
 
 
@@ -45,8 +43,7 @@ def _virtual_device_to_dict(
         "name": device.name,
         "label_ref": device.label_ref,
         "entities": {
-            entity.id: _virtual_entity_to_dict(entity)
-            for entity in device.entities
+            entity.id: _virtual_entity_to_dict(entity) for entity in device.entities
         },
     }
 
@@ -61,8 +58,7 @@ def _virtual_device_from_dict(
             entity_id,
             entity_data,
         )
-        for entity_id, entity_data
-        in data.get("entities", {}).items()
+        for entity_id, entity_data in data.get("entities", {}).items()
     ]
 
     return VirtualDevice(
@@ -120,8 +116,7 @@ class VirtualDeviceStorage:
                 device_id,
                 data,
             )
-            for device_id, data
-            in self._data["virtual_devices"].items()
+            for device_id, data in self._data["virtual_devices"].items()
         ]
 
     def get_virtual_device(
@@ -146,9 +141,7 @@ class VirtualDeviceStorage:
         device: VirtualDevice,
     ) -> None:
         """Create or update a virtual device."""
-        self._data["virtual_devices"][device.id] = (
-            _virtual_device_to_dict(device)
-        )
+        self._data["virtual_devices"][device.id] = _virtual_device_to_dict(device)
 
         await self.async_save()
 

@@ -12,7 +12,6 @@ class VirtualEntity:
     id: str
     device_class: str
     aggregation: str
-    unit: str
     name: str | None = None
 
     def __post_init__(self) -> None:

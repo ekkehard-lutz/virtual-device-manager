@@ -19,8 +19,7 @@ async def test_virtual_device_services_are_registered() -> None:
     await async_register_virtual_device_services(hass, storage)
 
     registered_services = {
-        call.args[1]
-        for call in hass.services.async_register.call_args_list
+        call.args[1] for call in hass.services.async_register.call_args_list
     }
 
     assert "create_virtual_device" in registered_services
@@ -57,7 +56,6 @@ async def test_create_virtual_device_service_calls_manager() -> None:
             if call.args[1] == "create_virtual_device"
         )
         handler = register_call.args[2]
-
 
         await handler(service_call)
 
@@ -425,8 +423,7 @@ async def test_virtual_device_services_have_expected_schemas() -> None:
     await async_register_virtual_device_services(hass, storage)
 
     registrations = {
-        call.args[1]: call
-        for call in hass.services.async_register.call_args_list
+        call.args[1]: call for call in hass.services.async_register.call_args_list
     }
 
     create_call = registrations["create_virtual_device"]

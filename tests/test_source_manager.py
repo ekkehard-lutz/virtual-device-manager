@@ -1,4 +1,5 @@
 """Tests for the Virtual Device Manager source manager."""
+
 import asyncio
 from types import SimpleNamespace
 from unittest.mock import AsyncMock, MagicMock
@@ -151,7 +152,6 @@ def test_rebuild_virtual_device(monkeypatch) -> None:
                 id="power",
                 device_class="power",
                 aggregation="sum",
-                unit="kW",
             ),
         ],
     )
@@ -201,13 +201,11 @@ def test_rebuild_virtual_device_multiple_entities(monkeypatch) -> None:
                 id="power",
                 device_class="power",
                 aggregation="sum",
-                unit="kW",
             ),
             VirtualEntity(
                 id="energy",
                 device_class="energy",
                 aggregation="sum",
-                unit="kWh",
             ),
         ],
     )
@@ -278,7 +276,6 @@ def test_rebuild_virtual_device_removes_old_sources(
                 id="power",
                 device_class="power",
                 aggregation="sum",
-                unit="kW",
             ),
         ],
     )
@@ -334,9 +331,7 @@ def test_get_affected_virtual_entities_unknown_source() -> None:
     """Return no virtual entities for an unknown source."""
     manager = SourceManager()
 
-    assert manager.get_affected_virtual_entities(
-        "sensor.unknown"
-    ) == []
+    assert manager.get_affected_virtual_entities("sensor.unknown") == []
 
 
 def test_get_affected_virtual_entities_single() -> None:
@@ -348,9 +343,7 @@ def test_get_affected_virtual_entities_single() -> None:
         "sensor.power",
     )
 
-    assert manager.get_affected_virtual_entities(
-        "sensor.power"
-    ) == [
+    assert manager.get_affected_virtual_entities("sensor.power") == [
         "virtual-entity-1",
     ]
 
@@ -368,9 +361,7 @@ def test_get_affected_virtual_entities_multiple() -> None:
         "sensor.power",
     )
 
-    assert manager.get_affected_virtual_entities(
-        "sensor.power"
-    ) == [
+    assert manager.get_affected_virtual_entities("sensor.power") == [
         "virtual-entity-1",
         "virtual-entity-2",
     ]
@@ -389,9 +380,7 @@ def test_get_affected_virtual_entities_ignores_other_sources() -> None:
         "sensor.energy",
     )
 
-    assert manager.get_affected_virtual_entities(
-        "sensor.power"
-    ) == [
+    assert manager.get_affected_virtual_entities("sensor.power") == [
         "virtual-entity-1",
     ]
 
@@ -413,9 +402,7 @@ def test_handle_source_change() -> None:
         "sensor.energy",
     )
 
-    assert manager.handle_source_change(
-        "sensor.power"
-    ) == [
+    assert manager.handle_source_change("sensor.power") == [
         "virtual-entity-1",
         "virtual-entity-2",
     ]
@@ -425,9 +412,7 @@ def test_handle_source_change_unknown() -> None:
     """Return no entities for an unknown source change."""
     manager = SourceManager()
 
-    assert manager.handle_source_change(
-        "sensor.unknown"
-    ) == []
+    assert manager.handle_source_change("sensor.unknown") == []
 
 
 def test_handle_source_change_uses_existing_index() -> None:
@@ -487,9 +472,7 @@ def test_source_value_cache() -> None:
     assert affected == ["virtual-entity-1"]
     assert manager.get_source_value("sensor.power") == value
 
-    assert manager.get_source_values(
-        "virtual-entity-1"
-    ) == [value]
+    assert manager.get_source_values("virtual-entity-1") == [value]
 
 
 def test_source_value_cache_updates_existing_value() -> None:
@@ -517,9 +500,7 @@ def test_source_value_cache_updates_existing_value() -> None:
         )
     )
 
-    values = manager.get_source_values(
-        "virtual-entity-1"
-    )
+    values = manager.get_source_values("virtual-entity-1")
 
     assert len(values) == 1
     assert values[0].value == 100.0
@@ -564,9 +545,7 @@ def test_source_values_are_cached_independently() -> None:
         )
     )
 
-    values = manager.get_source_values(
-        "virtual-entity-1"
-    )
+    values = manager.get_source_values("virtual-entity-1")
 
     assert values == [
         SourceValue(
@@ -608,13 +587,9 @@ def test_source_value_can_be_shared_by_multiple_virtual_entities() -> None:
 
     manager.update_source_value(value)
 
-    assert manager.get_source_values(
-        "virtual-power"
-    ) == [value]
+    assert manager.get_source_values("virtual-power") == [value]
 
-    assert manager.get_source_values(
-        "virtual-energy"
-    ) == [value]
+    assert manager.get_source_values("virtual-energy") == [value]
 
 
 def test_remove_source_removes_unused_cached_value() -> None:
@@ -639,9 +614,7 @@ def test_remove_source_removes_unused_cached_value() -> None:
         "sensor.power",
     )
 
-    assert manager.get_source_value(
-        "sensor.power"
-    ) is None
+    assert manager.get_source_value("sensor.power") is None
 
 
 def test_remove_source_value_keeps_relationship() -> None:
@@ -661,17 +634,11 @@ def test_remove_source_value_keeps_relationship() -> None:
         )
     )
 
-    affected = manager.remove_source_value(
-        "sensor.power"
-    )
+    affected = manager.remove_source_value("sensor.power")
 
     assert affected == ["virtual-entity-1"]
-    assert manager.get_sources(
-        "virtual-entity-1"
-    ) == ["sensor.power"]
-    assert manager.get_source_values(
-        "virtual-entity-1"
-    ) == []
+    assert manager.get_sources("virtual-entity-1") == ["sensor.power"]
+    assert manager.get_source_values("virtual-entity-1") == []
 
 
 @pytest.mark.asyncio
@@ -868,7 +835,6 @@ async def test_reconcile_discovers_new_source_entity(
                 id="power",
                 device_class="power",
                 aggregation="sum",
-                unit="W",
             ),
         ],
     )
@@ -955,7 +921,6 @@ async def test_reconcile_removes_no_longer_matching_source_entity(
                 id="power",
                 device_class="power",
                 aggregation="sum",
-                unit="W",
             ),
         ],
     )
@@ -1029,7 +994,6 @@ async def test_reconcile_does_not_recreate_virtual_entity(
                 id="power",
                 device_class="power",
                 aggregation="sum",
-                unit="W",
             ),
         ],
     )
@@ -1065,7 +1029,6 @@ async def test_reconcile_does_not_recreate_virtual_entity(
     assert device.entities[0].id == "power"
     assert device.entities[0].device_class == "power"
     assert device.entities[0].aggregation == "sum"
-    assert device.entities[0].unit == "W"
 
 
 def test_get_source_values_for_virtual_entity() -> None:
@@ -1181,7 +1144,6 @@ async def test_async_reconcile_reports_changed_virtual_entities(monkeypatch) -> 
                 id="power",
                 device_class="power",
                 aggregation="sum",
-                unit="W",
             ),
         ],
     )

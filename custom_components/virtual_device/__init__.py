@@ -107,7 +107,6 @@ async def async_setup_entry(
         PLATFORMS,
     )
 
-
     async def _handle_homeassistant_started(event) -> None:
         """Perform the initial source reconciliation after Home Assistant startup."""
         changed_entity_ids = await source_manager.async_reconcile(hass)
@@ -118,12 +117,10 @@ async def async_setup_entry(
                 changed_entity_ids,
             )
 
-
     hass.bus.async_listen_once(
         EVENT_HOMEASSISTANT_STARTED,
         _handle_homeassistant_started,
     )
-
 
     await source_manager.async_start(
         hass,
