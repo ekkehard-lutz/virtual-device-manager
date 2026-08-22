@@ -3,6 +3,7 @@
 from homeassistant.components import websocket_api
 from homeassistant.core import HomeAssistant
 
+from .const import AGGREGATIONS, SUPPORTED_DEVICE_CLASSES
 from .lifecycle import VirtualDeviceLifecycleManager
 from .sensor import VirtualSensorManager
 from .source_manager import SourceManager
@@ -53,6 +54,33 @@ async def async_register_websocket_commands(
     lifecycle_manager: VirtualDeviceLifecycleManager | None = None,
 ) -> None:
     """Register Virtual Device Manager WebSocket commands."""
+
+    @websocket_api.websocket_command(
+        {
+            "type": "virtual_device/get_entity_config",
+        }
+    )
+    @websocket_api.async_response
+    async def handle_get_entity_config(
+        hass: HomeAssistant,
+        connection: websocket_api.ActiveConnection,
+        msg: dict,
+    ) -> None:
+        """Return virtual entity configuration options."""
+        device_classes = list(SUPPORTED_DEVICE_CLASSES)
+
+        connection.send_result(
+            msg["id"],
+            {
+                "device_classes": device_classes,
+                "aggregations": list(AGGREGATIONS),
+            },
+        )
+
+    websocket_api.async_register_command(
+        hass,
+        handle_get_entity_config,
+    )
 
     @websocket_api.websocket_command(
         {
@@ -120,7 +148,6 @@ async def async_register_websocket_commands(
             "type": "virtual_device/update_virtual_device",
             "device_id": str,
             "name": str,
-            "label_ref": str,
             "confirm_physical_name_conflict": bool,
         }
     )
@@ -136,7 +163,6 @@ async def async_register_websocket_commands(
             "storage": storage,
             "device_id": msg["device_id"],
             "name": msg["name"],
-            "label_ref": msg["label_ref"],
             "confirm_physical_name_conflict": msg.get(
                 "confirm_physical_name_conflict",
                 False,
