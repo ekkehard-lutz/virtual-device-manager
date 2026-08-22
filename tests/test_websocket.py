@@ -516,7 +516,6 @@ async def test_update_virtual_entity_websocket_updates_entity() -> None:
         source_manager=source_manager,
         device_id="virtual-energie",
         entity_id="virtual-energie_power",
-        device_class=None,
         aggregation="avg",
         name="Durchschnittsleistung",
     )

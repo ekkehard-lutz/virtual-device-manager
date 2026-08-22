@@ -258,7 +258,6 @@ async def async_register_websocket_commands(
             "source_manager": source_manager,
             "device_id": msg["device_id"],
             "entity_id": msg["entity_id"],
-            "device_class": msg.get("device_class"),
             "aggregation": msg.get("aggregation"),
             "name": msg.get("name"),
         }

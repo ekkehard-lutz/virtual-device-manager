@@ -469,9 +469,34 @@ class VirtualDeviceManager
         return;
       }
 
+      const usedLabelRefs = new Set(
+        (this._devices || []).map(
+          (device) => device.label_ref,
+        ),
+      );
+
+      const availableLabels = labels
+        .filter(
+          (label) =>
+            !usedLabelRefs.has(label.label_id),
+        )
+        .sort((a, b) =>
+          String(a.name).localeCompare(
+            String(b.name),
+          ),
+        );
+
+      if (availableLabels.length === 0) {
+        this._showMessage(
+          "Es sind keine freien Home-Assistant-Labels vorhanden.",
+        );
+
+        return;
+      }
+
       await openCreateVirtualDeviceDialog(
         this,
-        labels,
+        availableLabels,
         () => this._loadDevices(),
       );
     } catch (error) {
