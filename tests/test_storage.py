@@ -26,7 +26,6 @@ async def test_virtual_device_save_and_load() -> None:
         name="Gesamtleistung",
         device_class="power",
         aggregation="sum",
-        unit="kW",
     )
 
     device = VirtualDevice(
@@ -50,7 +49,7 @@ async def test_virtual_device_save_and_load() -> None:
     assert loaded.entities[0].name == "Gesamtleistung"
     assert loaded.entities[0].device_class == "power"
     assert loaded.entities[0].aggregation == "sum"
-    assert loaded.entities[0].unit == "kW"
+    assert not hasattr(loaded.entities[0], "unit")
 
     storage.async_save.assert_awaited_once()
 
@@ -132,7 +131,7 @@ async def test_load_stored_virtual_devices() -> None:
     assert device.entities[0].name == "Gesamtleistung"
     assert device.entities[0].device_class == "power"
     assert device.entities[0].aggregation == "sum"
-    assert device.entities[0].unit == "kW"
+    assert not hasattr(device.entities[0], "unit")
 
 
 @pytest.mark.asyncio

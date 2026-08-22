@@ -4,6 +4,10 @@ from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 
+from custom_components.virtual_device.const import (
+    AGGREGATIONS,
+    SUPPORTED_DEVICE_CLASSES,
+)
 from custom_components.virtual_device.models import (
     VirtualDevice,
     VirtualEntity,
@@ -32,15 +36,75 @@ async def test_get_virtual_devices_websocket_command_is_registered() -> None:
             sensor_manager,
         )
 
-    registered_handlers = [
-        call.args[1]
-        for call in register_mock.call_args_list
-    ]
+    registered_handlers = [call.args[1] for call in register_mock.call_args_list]
 
     assert any(
         handler.__name__ == "handle_get_virtual_devices"
         for handler in registered_handlers
     )
+
+
+@pytest.mark.asyncio
+async def test_get_entity_config_websocket_command_is_registered() -> None:
+    """Register the get_entity_config WebSocket command."""
+    hass = MagicMock()
+    storage = MagicMock()
+    source_manager = MagicMock()
+    sensor_manager = MagicMock()
+
+    with patch(
+        "custom_components.virtual_device.websocket.websocket_api.async_register_command"
+    ) as register_mock:
+        await async_register_websocket_commands(
+            hass,
+            storage,
+            source_manager,
+            sensor_manager,
+        )
+
+    registered_handlers = [call.args[1] for call in register_mock.call_args_list]
+
+    assert any(
+        handler.__name__ == "handle_get_entity_config"
+        for handler in registered_handlers
+    )
+
+
+@pytest.mark.asyncio
+async def test_get_entity_config_websocket_returns_configuration() -> None:
+    """Return supported device classes and aggregations."""
+    hass = MagicMock()
+    storage = MagicMock()
+    connection = MagicMock()
+    source_manager = MagicMock()
+    sensor_manager = MagicMock()
+
+    with patch(
+        "custom_components.virtual_device.websocket.websocket_api.async_register_command"
+    ) as register_mock:
+        await async_register_websocket_commands(
+            hass,
+            storage,
+            source_manager,
+            sensor_manager,
+        )
+
+    handler = next(
+        handler
+        for handler in (call.args[1] for call in register_mock.call_args_list)
+        if handler.__name__ == "handle_get_entity_config"
+    )
+
+    await handler.__wrapped__(
+        hass=hass,
+        connection=connection,
+        msg={"id": 42},
+    )
+
+    result = connection.send_result.call_args.args[1]
+
+    assert result["device_classes"] == list(SUPPORTED_DEVICE_CLASSES)
+    assert result["aggregations"] == list(AGGREGATIONS)
 
 
 def test_serialize_virtual_devices() -> None:
@@ -74,7 +138,6 @@ def test_serialize_virtual_devices() -> None:
                     "id": "entity-energie",
                     "device_class": "energy",
                     "aggregation": "sum",
-                    "unit": "kWh",
                     "name": "Gesamtenergie",
                 }
             ],
@@ -100,10 +163,7 @@ async def test_delete_virtual_device_websocket_command_is_registered() -> None:
             sensor_manager,
         )
 
-    registered_handlers = [
-        call.args[1]
-        for call in register_mock.call_args_list
-    ]
+    registered_handlers = [call.args[1] for call in register_mock.call_args_list]
 
     assert any(
         handler.__name__ == "handle_delete_virtual_device"
@@ -132,10 +192,7 @@ async def test_delete_virtual_device_websocket_deletes_device() -> None:
 
     handler = next(
         handler
-        for handler in (
-            call.args[1]
-            for call in register_mock.call_args_list
-        )
+        for handler in (call.args[1] for call in register_mock.call_args_list)
         if handler.__name__ == "handle_delete_virtual_device"
     )
 
@@ -182,10 +239,7 @@ async def test_update_virtual_device_websocket_command_is_registered() -> None:
             sensor_manager,
         )
 
-    registered_handlers = [
-        call.args[1]
-        for call in register_mock.call_args_list
-    ]
+    registered_handlers = [call.args[1] for call in register_mock.call_args_list]
 
     assert any(
         handler.__name__ == "handle_update_virtual_device"
@@ -214,10 +268,7 @@ async def test_update_virtual_device_websocket_updates_device() -> None:
 
     handler = next(
         handler
-        for handler in (
-            call.args[1]
-            for call in register_mock.call_args_list
-        )
+        for handler in (call.args[1] for call in register_mock.call_args_list)
         if handler.__name__ == "handle_update_virtual_device"
     )
 
@@ -239,7 +290,6 @@ async def test_update_virtual_device_websocket_updates_device() -> None:
                 "id": 42,
                 "device_id": "virtual-energie",
                 "name": "Haus Heizung",
-                "label_ref": "label-id-heizung",
                 "confirm_physical_name_conflict": False,
             },
         )
@@ -249,7 +299,6 @@ async def test_update_virtual_device_websocket_updates_device() -> None:
         storage=storage,
         device_id="virtual-energie",
         name="Haus Heizung",
-        label_ref="label-id-heizung",
         confirm_physical_name_conflict=False,
     )
 
@@ -284,10 +333,7 @@ async def test_add_virtual_entity_websocket_command_is_registered() -> None:
             sensor_manager,
         )
 
-    registered_handlers = [
-        call.args[1]
-        for call in register_mock.call_args_list
-    ]
+    registered_handlers = [call.args[1] for call in register_mock.call_args_list]
 
     assert any(
         handler.__name__ == "handle_add_virtual_entity"
@@ -316,10 +362,7 @@ async def test_add_virtual_entity_websocket_adds_entity() -> None:
 
     handler = next(
         handler
-        for handler in (
-            call.args[1]
-            for call in register_mock.call_args_list
-        )
+        for handler in (call.args[1] for call in register_mock.call_args_list)
         if handler.__name__ == "handle_add_virtual_entity"
     )
 
@@ -332,7 +375,6 @@ async def test_add_virtual_entity_websocket_adds_entity() -> None:
                 id="virtual-energie_power",
                 device_class="power",
                 aggregation="sum",
-                unit="W",
                 name="Gesamtleistung",
             ),
         ],
@@ -351,7 +393,6 @@ async def test_add_virtual_entity_websocket_adds_entity() -> None:
                 "device_id": "virtual-energie",
                 "device_class": "power",
                 "aggregation": "sum",
-                "unit": "W",
                 "name": "Gesamtleistung",
             },
         )
@@ -364,7 +405,6 @@ async def test_add_virtual_entity_websocket_adds_entity() -> None:
         device_id="virtual-energie",
         device_class="power",
         aggregation="sum",
-        unit="W",
         name="Gesamtleistung",
     )
 
@@ -380,7 +420,6 @@ async def test_add_virtual_entity_websocket_adds_entity() -> None:
                         "id": "virtual-energie_power",
                         "device_class": "power",
                         "aggregation": "sum",
-                        "unit": "W",
                         "name": "Gesamtleistung",
                     }
                 ],
@@ -407,10 +446,7 @@ async def test_update_virtual_entity_websocket_command_is_registered() -> None:
             sensor_manager,
         )
 
-    registered_handlers = [
-        call.args[1]
-        for call in register_mock.call_args_list
-    ]
+    registered_handlers = [call.args[1] for call in register_mock.call_args_list]
 
     assert any(
         handler.__name__ == "handle_update_virtual_entity"
@@ -439,10 +475,7 @@ async def test_update_virtual_entity_websocket_updates_entity() -> None:
 
     handler = next(
         handler
-        for handler in (
-            call.args[1]
-            for call in register_mock.call_args_list
-        )
+        for handler in (call.args[1] for call in register_mock.call_args_list)
         if handler.__name__ == "handle_update_virtual_entity"
     )
 
@@ -455,7 +488,6 @@ async def test_update_virtual_entity_websocket_updates_entity() -> None:
                 id="virtual-energie_power",
                 device_class="power",
                 aggregation="avg",
-                unit="W",
                 name="Durchschnittsleistung",
             ),
         ],
@@ -502,7 +534,6 @@ async def test_update_virtual_entity_websocket_updates_entity() -> None:
                         "id": "virtual-energie_power",
                         "device_class": "power",
                         "aggregation": "avg",
-                        "unit": "W",
                         "name": "Durchschnittsleistung",
                     }
                 ],
@@ -529,10 +560,7 @@ async def test_delete_virtual_entity_websocket_command_is_registered() -> None:
             sensor_manager,
         )
 
-    registered_handlers = [
-        call.args[1]
-        for call in register_mock.call_args_list
-    ]
+    registered_handlers = [call.args[1] for call in register_mock.call_args_list]
 
     assert any(
         handler.__name__ == "handle_delete_virtual_entity"
@@ -561,10 +589,7 @@ async def test_delete_virtual_entity_websocket_deletes_entity() -> None:
 
     handler = next(
         handler
-        for handler in (
-            call.args[1]
-            for call in register_mock.call_args_list
-        )
+        for handler in (call.args[1] for call in register_mock.call_args_list)
         if handler.__name__ == "handle_delete_virtual_entity"
     )
 

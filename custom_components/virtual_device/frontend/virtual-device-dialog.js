@@ -166,24 +166,16 @@ export async function openEditVirtualDeviceDialog(
 
         <label>Label</label>
 
-        <select class="label-select">
-          ${labels
-            .map(
-              (label) => `
-                <option
-                  value="${escapeAttribute(label.label_id)}"
-                  ${
-                    label.label_id === device.label_ref
-                      ? "selected"
-                      : ""
-                  }
-                >
-                  ${escapeHtml(label.name)}
-                </option>
-              `,
-            )
-            .join("")}
-        </select>
+        <input
+          class="label-input"
+          type="text"
+          value="${escapeAttribute(
+            labels.find(
+              (label) => label.label_id === device.label_ref,
+            )?.name || device.label_ref || "",
+          )}"
+          disabled
+        />
 
         <div class="physical-name-warning hidden">
           Der Name entspricht dem Namen eines physischen
@@ -223,9 +215,6 @@ export async function openEditVirtualDeviceDialog(
   const nameInput =
     dialog.querySelector(".name-input");
 
-  const labelSelect =
-    dialog.querySelector(".label-select");
-
   const warning =
     dialog.querySelector(
       ".physical-name-warning",
@@ -254,7 +243,6 @@ export async function openEditVirtualDeviceDialog(
     "click",
     async () => {
       const name = nameInput.value.trim();
-      const labelRef = labelSelect.value;
 
       saveButton.disabled = true;
       saveButton.textContent = "Speichern …";
@@ -266,7 +254,6 @@ export async function openEditVirtualDeviceDialog(
             {
               device_id: device.id,
               name,
-              label_ref: labelRef,
               confirm_physical_name_conflict:
                 confirmConflict.checked,
             },
@@ -314,6 +301,7 @@ export async function openEditVirtualDeviceDialog(
 export async function openCreateVirtualEntityDialog(
   component,
   device,
+  entityConfig,
   onCreated,
 ) {
   const dialog = document.createElement("div");
@@ -338,28 +326,31 @@ export async function openCreateVirtualEntityDialog(
 
         <label>Device Class</label>
 
-        <input
-          class="entity-device-class-input"
-          type="text"
-          placeholder="z. B. power"
-        />
+        <select class="entity-device-class-select">
+          ${entityConfig.device_classes
+            .map(
+              (deviceClass) => `
+                <option value="${escapeAttribute(deviceClass)}">
+                  ${escapeHtml(deviceClass)}
+                </option>
+              `,
+            )
+            .join("")}
+        </select>
 
         <label>Aggregation</label>
 
         <select class="entity-aggregation-select">
-          <option value="sum">Summe</option>
-          <option value="avg">Durchschnitt</option>
-          <option value="min">Minimum</option>
-          <option value="max">Maximum</option>
+          ${entityConfig.aggregations
+            .map(
+              (aggregation) => `
+                <option value="${escapeAttribute(aggregation)}">
+                  ${escapeHtml(aggregation)}
+                </option>
+              `,
+            )
+            .join("")}
         </select>
-
-        <label>Einheit</label>
-
-        <input
-          class="entity-unit-input"
-          type="text"
-          placeholder="z. B. W"
-        />
 
       </div>
 
@@ -390,19 +381,14 @@ export async function openCreateVirtualEntityDialog(
       ".entity-name-input",
     );
 
-  const deviceClassInput =
+  const deviceClassSelect =
     dialog.querySelector(
-      ".entity-device-class-input",
+      ".entity-device-class-select",
     );
 
   const aggregationSelect =
     dialog.querySelector(
       ".entity-aggregation-select",
-    );
-
-  const unitInput =
-    dialog.querySelector(
-      ".entity-unit-input",
     );
 
   cancelButton.addEventListener(
@@ -426,18 +412,15 @@ export async function openCreateVirtualEntityDialog(
         nameInput.value.trim();
 
       const deviceClass =
-        deviceClassInput.value.trim();
+        deviceClassSelect.value;
 
       const aggregation =
         aggregationSelect.value;
 
-      const unit =
-        unitInput.value.trim();
-
-      if (!deviceClass || !unit) {
+      if (!deviceClass) {
         showDialogError(
           dialog,
-          "Device Class und Einheit müssen angegeben werden.",
+          "Device Class muss angegeben werden.",
         );
 
         return;
@@ -455,7 +438,6 @@ export async function openCreateVirtualEntityDialog(
               device_id: device.id,
               device_class: deviceClass,
               aggregation,
-              unit,
               name: name || undefined,
             },
           );
@@ -491,6 +473,7 @@ export async function openEditVirtualEntityDialog(
   component,
   device,
   entity,
+  entityConfig,
   onUpdated,
 ) {
   const dialog = document.createElement("div");
@@ -529,73 +512,37 @@ export async function openEditVirtualEntityDialog(
 
         <label>Device Class</label>
 
-        <input
-          class="entity-device-class-input"
-          type="text"
-          value="${escapeAttribute(
-            entity.device_class || "",
-          )}"
-        />
+        <select class="entity-device-class-select">
+          ${entityConfig.device_classes
+            .map(
+              (deviceClass) => `
+                <option
+                  value="${escapeAttribute(deviceClass)}"
+                  ${deviceClass === entity.device_class ? "selected" : ""}
+                >
+                  ${escapeHtml(deviceClass)}
+                </option>
+              `,
+            )
+            .join("")}
+        </select>
 
         <label>Aggregation</label>
 
         <select class="entity-aggregation-select">
-
-          <option
-            value="sum"
-            ${
-              entity.aggregation === "sum"
-                ? "selected"
-                : ""
-            }
-          >
-            Summe
-          </option>
-
-          <option
-            value="avg"
-            ${
-              entity.aggregation === "avg"
-                ? "selected"
-                : ""
-            }
-          >
-            Durchschnitt
-          </option>
-
-          <option
-            value="min"
-            ${
-              entity.aggregation === "min"
-                ? "selected"
-                : ""
-            }
-          >
-            Minimum
-          </option>
-
-          <option
-            value="max"
-            ${
-              entity.aggregation === "max"
-                ? "selected"
-                : ""
-            }
-          >
-            Maximum
-          </option>
-
+          ${entityConfig.aggregations
+            .map(
+              (aggregation) => `
+                <option
+                  value="${escapeAttribute(aggregation)}"
+                  ${aggregation === entity.aggregation ? "selected" : ""}
+                >
+                  ${escapeHtml(aggregation)}
+                </option>
+              `,
+            )
+            .join("")}
         </select>
-
-        <label>Einheit</label>
-
-        <input
-          class="entity-unit-input"
-          type="text"
-          value="${escapeAttribute(
-            entity.unit || "",
-          )}"
-        />
 
       </div>
 
@@ -631,19 +578,14 @@ export async function openEditVirtualEntityDialog(
       ".entity-name-input",
     );
 
-  const deviceClassInput =
+  const deviceClassSelect =
     dialog.querySelector(
-      ".entity-device-class-input",
+      ".entity-device-class-select",
     );
 
   const aggregationSelect =
     dialog.querySelector(
       ".entity-aggregation-select",
-    );
-
-  const unitInput =
-    dialog.querySelector(
-      ".entity-unit-input",
     );
 
   cancelButton.addEventListener(
@@ -667,18 +609,15 @@ export async function openEditVirtualEntityDialog(
         nameInput.value.trim();
 
       const deviceClass =
-        deviceClassInput.value.trim();
+        deviceClassSelect.value;
 
       const aggregation =
         aggregationSelect.value;
 
-      const unit =
-        unitInput.value.trim();
-
-      if (!deviceClass || !unit) {
+      if (!deviceClass) {
         showDialogError(
           dialog,
-          "Device Class und Einheit müssen angegeben werden.",
+          "Device Class muss angegeben werden.",
         );
 
         return;
@@ -697,7 +636,6 @@ export async function openEditVirtualEntityDialog(
               entity_id: entity.id,
               device_class: deviceClass,
               aggregation,
-              unit,
               name: name || undefined,
             },
           );

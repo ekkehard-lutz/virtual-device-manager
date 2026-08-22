@@ -37,7 +37,6 @@ def _create_sensor() -> VirtualDeviceSensor:
                 id="virtual_beleuchtung_power",
                 device_class="power",
                 aggregation="sum",
-                unit="kW",
             ),
         ],
     )
@@ -66,7 +65,7 @@ def test_sensor_unit() -> None:
     """Test the sensor unit."""
     sensor = _create_sensor()
 
-    assert sensor.native_unit_of_measurement == "kW"
+    assert sensor.native_unit_of_measurement == "W"
 
 
 def test_sensor_initial_value() -> None:
@@ -110,15 +109,11 @@ def test_sensor_manager_add_entity() -> None:
         VirtualDeviceSensor,
     )
 
-    assert added_sensor.unique_id == (
-        "virtual_device_virtual_beleuchtung_power"
-    )
+    assert added_sensor.unique_id == ("virtual_device_virtual_beleuchtung_power")
 
-    assert added_sensor.native_value == 2.0
+    assert added_sensor.native_value == 2000.0
 
-    assert manager.sensors[
-        "virtual_beleuchtung_power"
-    ] is added_sensor
+    assert manager.sensors["virtual_beleuchtung_power"] is added_sensor
 
 
 def test_sensor_manager_update_entities() -> None:
@@ -172,9 +167,7 @@ def test_sensor_unique_id() -> None:
     """Test the sensor unique ID."""
     sensor = _create_sensor()
 
-    assert sensor.unique_id == (
-        "virtual_device_virtual_beleuchtung_power"
-    )
+    assert sensor.unique_id == ("virtual_device_virtual_beleuchtung_power")
 
 
 def test_sensor_update_value_sum() -> None:
@@ -191,7 +184,7 @@ def test_sensor_update_value_sum() -> None:
         ]
     )
 
-    assert sensor.native_value == 2.0
+    assert sensor.native_value == 2000.0
 
 
 def test_sensor_update_value_average() -> None:
@@ -205,7 +198,6 @@ def test_sensor_update_value_average() -> None:
                 id="power",
                 device_class="power",
                 aggregation="avg",
-                unit="kW",
             ),
         ],
     )
@@ -225,7 +217,7 @@ def test_sensor_update_value_average() -> None:
         ]
     )
 
-    assert sensor.native_value == 1.0
+    assert sensor.native_value == 1000.0
 
 
 def test_sensor_update_value_min() -> None:
@@ -239,7 +231,6 @@ def test_sensor_update_value_min() -> None:
                 id="power",
                 device_class="power",
                 aggregation="min",
-                unit="kW",
             ),
         ],
     )
@@ -259,7 +250,7 @@ def test_sensor_update_value_min() -> None:
         ]
     )
 
-    assert sensor.native_value == 0.5
+    assert sensor.native_value == 500.0
 
 
 def test_sensor_update_value_max() -> None:
@@ -273,7 +264,6 @@ def test_sensor_update_value_max() -> None:
                 id="power",
                 device_class="power",
                 aggregation="max",
-                unit="kW",
             ),
         ],
     )
@@ -293,7 +283,7 @@ def test_sensor_update_value_max() -> None:
         ]
     )
 
-    assert sensor.native_value == 1.5
+    assert sensor.native_value == 1500.0
 
 
 def test_sensor_update_value_empty() -> None:
@@ -325,13 +315,11 @@ async def test_async_setup_entry_creates_virtual_sensors(
                 id="power",
                 device_class="power",
                 aggregation="sum",
-                unit="kW",
             ),
             VirtualEntity(
                 id="energy",
                 device_class="energy",
                 aggregation="sum",
-                unit="kWh",
             ),
         ],
     )
@@ -366,10 +354,7 @@ async def test_async_setup_entry_creates_virtual_sensors(
     entities = add_entities.call_args.args[0]
 
     assert len(entities) == 2
-    assert all(
-        isinstance(entity, VirtualDeviceSensor)
-        for entity in entities
-    )
+    assert all(isinstance(entity, VirtualDeviceSensor) for entity in entities)
 
     assert entities[0].unique_id == "virtual_device_power"
     assert entities[1].unique_id == "virtual_device_energy"
@@ -382,9 +367,7 @@ def test_sensor_device_info() -> None:
     device_info = sensor.device_info
 
     assert device_info is not None
-    assert device_info["identifiers"] == {
-        ("virtual_device", "virtual_beleuchtung")
-    }
+    assert device_info["identifiers"] == {("virtual_device", "virtual_beleuchtung")}
     assert device_info["name"] == "Energie"
 
 
@@ -399,13 +382,11 @@ def test_sensors_share_virtual_device() -> None:
                 id="power",
                 device_class="power",
                 aggregation="sum",
-                unit="kW",
             ),
             VirtualEntity(
                 id="energy",
                 device_class="energy",
                 aggregation="sum",
-                unit="kWh",
             ),
         ],
     )
@@ -419,8 +400,9 @@ def test_sensors_share_virtual_device() -> None:
         device.entities[1],
     )
 
-    assert power_sensor.device_info["identifiers"] == (
-        energy_sensor.device_info["identifiers"]
+    assert (
+        power_sensor.device_info["identifiers"]
+        == (energy_sensor.device_info["identifiers"])
     )
 
 
@@ -435,7 +417,6 @@ def test_different_virtual_devices_have_different_ids() -> None:
                 id="power",
                 device_class="power",
                 aggregation="sum",
-                unit="kW",
             ),
         ],
     )
@@ -449,7 +430,6 @@ def test_different_virtual_devices_have_different_ids() -> None:
                 id="power",
                 device_class="power",
                 aggregation="sum",
-                unit="kW",
             ),
         ],
     )
@@ -463,10 +443,7 @@ def test_different_virtual_devices_have_different_ids() -> None:
         device_2.entities[0],
     )
 
-    assert sensor_1.device_info["identifiers"] != (
-        sensor_2.device_info["identifiers"]
-    )
-
+    assert sensor_1.device_info["identifiers"] != (sensor_2.device_info["identifiers"])
 
 
 def test_sensor_update_value_writes_state() -> None:
@@ -482,7 +459,7 @@ def test_sensor_update_value_writes_state() -> None:
         ]
     )
 
-    assert sensor.native_value == 2.0
+    assert sensor.native_value == 2000.0
     sensor.async_write_ha_state.assert_called_once()
 
 
@@ -497,13 +474,11 @@ def test_update_sensors_for_source_change() -> None:
                 id="power",
                 device_class="power",
                 aggregation="sum",
-                unit="kW",
             ),
             VirtualEntity(
                 id="energy",
                 device_class="energy",
                 aggregation="sum",
-                unit="kWh",
             ),
         ],
     )
@@ -797,7 +772,6 @@ async def test_async_setup_entry_uses_source_manager_and_creates_listener(
                 id="power",
                 device_class="power",
                 aggregation="sum",
-                unit="kW",
             ),
         ],
     )
@@ -851,7 +825,7 @@ async def test_async_setup_entry_uses_source_manager_and_creates_listener(
         device,
     )
 
-    async_listen.assert_called_once() 
+    async_listen.assert_called_once()
 
 
 @pytest.mark.asyncio
@@ -888,7 +862,6 @@ async def test_state_changed_aggregates_all_cached_sources() -> None:
                 id="power",
                 device_class="power",
                 aggregation="sum",
-                unit="W",
             ),
         ],
     )
@@ -955,3 +928,18 @@ async def test_state_changed_aggregates_all_cached_sources() -> None:
     )
 
     assert sensor.native_value == 170.0
+
+
+def test_sensor_native_unit_is_stable() -> None:
+    """Test that the native unit does not depend on source units."""
+    sensor = _create_sensor()
+
+    sensor.update_value(
+        [
+            SourceValue("sensor.power_1", 1.0, "kW"),
+        ],
+        write_state=False,
+    )
+
+    assert sensor.native_unit_of_measurement == "W"
+    assert sensor.native_value == 1000.0
