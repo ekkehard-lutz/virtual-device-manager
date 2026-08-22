@@ -291,7 +291,6 @@ async def test_add_virtual_entity_saves_updated_device() -> None:
             device_id="virtual_beleuchtung",
             device_class="power",
             aggregation="sum",
-            unit="W",
         )
 
     source_manager.rebuild_virtual_device.assert_called_once_with(
@@ -300,7 +299,12 @@ async def test_add_virtual_entity_saves_updated_device() -> None:
     )
 
     assert result is updated
-    add_mock.assert_called_once()
+    add_mock.assert_called_once_with(
+        device=existing,
+        device_class="power",
+        aggregation="sum",
+        name=None,
+    )
     storage.async_save_virtual_device.assert_awaited_once_with(updated)
 
 
@@ -439,5 +443,4 @@ async def test_add_virtual_entity_rejects_unknown_device() -> None:
             device_id="unknown-device",
             device_class="power",
             aggregation="sum",
-            unit="W",
         )

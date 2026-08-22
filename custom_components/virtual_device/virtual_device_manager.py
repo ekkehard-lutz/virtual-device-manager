@@ -77,7 +77,6 @@ async def async_add_virtual_entity(
     device_id: str,
     device_class: str,
     aggregation: str,
-    unit: str,
     name: str | None = None,
     lifecycle_manager: VirtualDeviceLifecycleManager | None = None,
 ) -> VirtualDevice:
@@ -91,7 +90,6 @@ async def async_add_virtual_entity(
         device=device,
         device_class=device_class,
         aggregation=aggregation,
-        unit=unit,
         name=name,
     )
 
@@ -130,7 +128,6 @@ async def async_update_virtual_entity(
     entity_id: str,
     device_class: str | None = None,
     aggregation: str | None = None,
-    unit: str | None = None,
     name: str | None = None,
     sensor_manager: VirtualSensorManager | None = None,
 ) -> VirtualDevice:
@@ -145,7 +142,6 @@ async def async_update_virtual_entity(
         entity_id=entity_id,
         device_class=device_class,
         aggregation=aggregation,
-        unit=unit,
         name=name,
     )
 
