@@ -11,13 +11,13 @@ STORAGE_KEY = DOMAIN
 PLATFORMS: list[str] = ["sensor"]
 
 AGGREGATIONS: tuple[str, ...] = (
-    "sum",
     "avg",
-    "min",
     "max",
+    "min",
+    "sum",
 )
 
 SUPPORTED_DEVICE_CLASSES: dict[str, str | None] = {
-    "power": "W",
     "energy": "Wh",
+    "power": "W",
 }

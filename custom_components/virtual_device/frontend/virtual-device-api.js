@@ -70,7 +70,6 @@ export async function addVirtualEntity(
     device_id: data.device_id,
     device_class: data.device_class,
     aggregation: data.aggregation,
-    unit: data.unit,
     name: data.name,
   });
 
@@ -86,9 +85,7 @@ export async function updateVirtualEntity(
     type: "virtual_device/update_virtual_entity",
     device_id: data.device_id,
     entity_id: data.entity_id,
-    device_class: data.device_class,
     aggregation: data.aggregation,
-    unit: data.unit,
     name: data.name,
   });
 

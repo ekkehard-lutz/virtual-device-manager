@@ -242,7 +242,6 @@ async def async_register_websocket_commands(
             "entity_id": str,
             "device_class": str,
             "aggregation": str,
-            "unit": str,
             "name": str,
         }
     )
@@ -261,7 +260,6 @@ async def async_register_websocket_commands(
             "entity_id": msg["entity_id"],
             "device_class": msg.get("device_class"),
             "aggregation": msg.get("aggregation"),
-            "unit": msg.get("unit"),
             "name": msg.get("name"),
         }
 

@@ -518,7 +518,6 @@ async def test_update_virtual_entity_websocket_updates_entity() -> None:
         entity_id="virtual-energie_power",
         device_class=None,
         aggregation="avg",
-        unit=None,
         name="Durchschnittsleistung",
     )
 

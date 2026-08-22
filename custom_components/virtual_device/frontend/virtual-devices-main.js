@@ -51,8 +51,13 @@ class VirtualDeviceManager
 
 
   _render() {
-    const devices =
-      this._devices || [];
+    const devices = [
+      ...(this._devices || []),
+    ].sort((a, b) =>
+      String(a.name || a.id).localeCompare(
+        String(b.name || b.id),
+      ),
+    );
 
     const content =
       devices.length === 0
@@ -215,10 +220,15 @@ class VirtualDeviceManager
     const name =
       device.name || device.id;
 
-    const entities =
+    const entities = (
       Array.isArray(device.entities)
         ? device.entities
-        : [];
+        : []
+    ).slice().sort((a, b) =>
+      String(a.name || a.id).localeCompare(
+        String(b.name || b.id),
+      ),
+    );
 
     return `
       <div class="device">
@@ -354,12 +364,6 @@ class VirtualDeviceManager
             <span>
               ${this._escape(
                 entity.aggregation,
-              )}
-            </span>
-
-            <span>
-              ${this._escape(
-                entity.unit,
               )}
             </span>
 

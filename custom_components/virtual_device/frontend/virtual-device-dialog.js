@@ -512,20 +512,12 @@ export async function openEditVirtualEntityDialog(
 
         <label>Device Class</label>
 
-        <select class="entity-device-class-select">
-          ${entityConfig.device_classes
-            .map(
-              (deviceClass) => `
-                <option
-                  value="${escapeAttribute(deviceClass)}"
-                  ${deviceClass === entity.device_class ? "selected" : ""}
-                >
-                  ${escapeHtml(deviceClass)}
-                </option>
-              `,
-            )
-            .join("")}
-        </select>
+        <input
+          class="entity-device-class-input"
+          type="text"
+          value="${escapeAttribute(entity.device_class)}"
+          disabled
+        />
 
         <label>Aggregation</label>
 
@@ -578,11 +570,6 @@ export async function openEditVirtualEntityDialog(
       ".entity-name-input",
     );
 
-  const deviceClassSelect =
-    dialog.querySelector(
-      ".entity-device-class-select",
-    );
-
   const aggregationSelect =
     dialog.querySelector(
       ".entity-aggregation-select",
@@ -608,20 +595,8 @@ export async function openEditVirtualEntityDialog(
       const name =
         nameInput.value.trim();
 
-      const deviceClass =
-        deviceClassSelect.value;
-
       const aggregation =
         aggregationSelect.value;
-
-      if (!deviceClass) {
-        showDialogError(
-          dialog,
-          "Device Class muss angegeben werden.",
-        );
-
-        return;
-      }
 
       saveButton.disabled = true;
       saveButton.textContent =
@@ -634,7 +609,6 @@ export async function openEditVirtualEntityDialog(
             {
               device_id: device.id,
               entity_id: entity.id,
-              device_class: deviceClass,
               aggregation,
               name: name || undefined,
             },
