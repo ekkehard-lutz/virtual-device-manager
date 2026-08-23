@@ -135,8 +135,10 @@ def test_serialize_virtual_devices() -> None:
                     "id": "entity-energie",
                     "device_class": "energy",
                     "aggregation": "sum",
+                    "name": "energy",
                 }
             ],
+            "name": None,
         }
     ]
 
@@ -304,6 +306,7 @@ async def test_update_virtual_device_websocket_updates_device() -> None:
                 "id": "virtual-energie",
                 "label_ref": "label-id-heizung",
                 "entities": [],
+                "name": None,
             }
         },
     )
@@ -411,8 +414,10 @@ async def test_add_virtual_entity_websocket_adds_entity() -> None:
                         "id": "virtual-energie_power",
                         "device_class": "power",
                         "aggregation": "sum",
+                        "name": "power",
                     }
                 ],
+                "name": None,
             }
         },
     )
@@ -519,8 +524,10 @@ async def test_update_virtual_entity_websocket_updates_entity() -> None:
                         "id": "virtual-energie_power",
                         "device_class": "power",
                         "aggregation": "avg",
+                        "name": "power",
                     }
                 ],
+                "name": None,
             }
         },
     )
@@ -612,6 +619,7 @@ async def test_delete_virtual_entity_websocket_deletes_entity() -> None:
                 "id": "virtual-energie",
                 "label_ref": "label-id-energie",
                 "entities": [],
+                "name": None,
             }
         },
     )

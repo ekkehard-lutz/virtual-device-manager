@@ -49,6 +49,75 @@ async def test_create_virtual_device_saves_device() -> None:
 
 
 @pytest.mark.asyncio
+async def test_create_virtual_device_uses_label_name_as_registry_default() -> None:
+    """Write the label display name only to the HA device registry."""
+    hass = MagicMock()
+    storage = MagicMock()
+    storage.get_virtual_devices.return_value = []
+    storage.async_save_virtual_device = AsyncMock()
+    lifecycle_manager = MagicMock()
+    device = VirtualDevice(id="virtual_abrakadabra", label_ref="abrakadabra")
+    labels = MagicMock()
+    label_entry = MagicMock()
+    label_entry.name = "Abrakadabra"
+    labels.async_get_label.return_value = label_entry
+
+    with (
+        patch(
+            "custom_components.virtual_device.virtual_device_manager."
+            "create_virtual_device",
+            return_value=device,
+        ),
+        patch(
+            "custom_components.virtual_device.virtual_device_manager."
+            "label_registry.async_get",
+            return_value=labels,
+        ),
+    ):
+        result = await async_create_virtual_device(
+            hass=hass,
+            storage=storage,
+            label_ref="abrakadabra",
+            name=None,
+            lifecycle_manager=lifecycle_manager,
+        )
+
+    assert result is device
+    assert not hasattr(device, "name")
+    lifecycle_manager.async_ensure_device.assert_called_once_with(
+        device, name="Abrakadabra"
+    )
+
+
+@pytest.mark.asyncio
+async def test_create_virtual_device_explicit_registry_name_wins() -> None:
+    """Prefer an explicit device name without consulting the label registry."""
+    hass = MagicMock()
+    storage = MagicMock()
+    storage.get_virtual_devices.return_value = []
+    storage.async_save_virtual_device = AsyncMock()
+    lifecycle_manager = MagicMock()
+    device = VirtualDevice(id="virtual_abrakadabra", label_ref="abrakadabra")
+
+    with patch(
+        "custom_components.virtual_device.virtual_device_manager."
+        "create_virtual_device",
+        return_value=device,
+    ):
+        await async_create_virtual_device(
+            hass=hass,
+            storage=storage,
+            label_ref="abrakadabra",
+            name="Zaubergerät",
+            lifecycle_manager=lifecycle_manager,
+        )
+
+    lifecycle_manager.async_ensure_device.assert_called_once_with(
+        device, name="Zaubergerät"
+    )
+
+
+@pytest.mark.asyncio
 async def test_update_virtual_device_saves_updated_device() -> None:
     """Update a virtual device and persist the result."""
     hass = MagicMock()
@@ -270,6 +339,53 @@ async def test_add_virtual_entity_saves_updated_device() -> None:
         device=existing,
         device_class="power",
         aggregation="sum",
+    )
+    storage.async_save_virtual_device.assert_awaited_once_with(updated)
+
+
+@pytest.mark.asyncio
+async def test_runtime_entity_is_immediately_assigned_to_device() -> None:
+    """Assign a newly created runtime entity to its HA device immediately."""
+    hass = MagicMock()
+    existing = VirtualDevice(
+        id="virtual_beleuchtung",
+        label_ref="beleuchtung",
+    )
+    storage = MagicMock()
+    storage.get_virtual_device.return_value = existing
+    storage.async_save_virtual_device = AsyncMock()
+    source_manager = MagicMock()
+    sensor_manager = MagicMock()
+    sensor_manager.sensors = {}
+    lifecycle_manager = MagicMock()
+    lifecycle_manager.get_device_registry_id.return_value = "ha-device-1"
+
+    updated = await async_add_virtual_entity(
+        hass=hass,
+        storage=storage,
+        source_manager=source_manager,
+        sensor_manager=sensor_manager,
+        lifecycle_manager=lifecycle_manager,
+        device_id=existing.id,
+        device_class="power",
+        aggregation="sum",
+        name="Gesamtleistung",
+    )
+
+    assert updated.id == existing.id
+    lifecycle_manager.get_device_registry_id.assert_called_once_with(
+        updated.id
+    )
+    lifecycle_manager.async_ensure_device.assert_not_called()
+    sensor_manager.add_entity.assert_called_once_with(
+        device=updated,
+        entity=updated.entities[0],
+        values=source_manager.get_source_values.return_value,
+        name="Gesamtleistung",
+        device_id="ha-device-1",
+    )
+    lifecycle_manager.async_reconcile_device_entities.assert_called_once_with(
+        updated
     )
     storage.async_save_virtual_device.assert_awaited_once_with(updated)
 

@@ -29,7 +29,12 @@ def _serialize_virtual_entity(
     }
 
     if lifecycle_manager is not None:
-        result["name"] = lifecycle_manager.get_entity_name(entity.id)
+        result["name"] = (
+            lifecycle_manager.get_entity_name(entity.id)
+            or entity.device_class
+        )
+    else:
+        result["name"] = entity.device_class
 
     return result
 
@@ -49,7 +54,11 @@ def _serialize_virtual_device(
     }
 
     if lifecycle_manager is not None:
-        result["name"] = lifecycle_manager.get_device_name(device.id)
+        result["name"] = (
+            lifecycle_manager.get_device_name(device.id, device.label_ref)
+        )
+    else:
+        result["name"] = None
 
     return result
 

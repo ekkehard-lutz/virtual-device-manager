@@ -1,6 +1,7 @@
 """Management operations for virtual devices."""
 
 from homeassistant.core import HomeAssistant
+from homeassistant.helpers import label_registry
 
 from .lifecycle import VirtualDeviceLifecycleManager
 from .models import VirtualDevice
@@ -29,6 +30,10 @@ async def async_create_virtual_device(
         label_ref=label_ref,
         existing_virtual_devices=storage.get_virtual_devices(),
     )
+
+    if name is None:
+        label_entry = label_registry.async_get(hass).async_get_label(label_ref)
+        name = label_entry.name if label_entry is not None else None
 
     await storage.async_save_virtual_device(device)
     if lifecycle_manager is not None:
@@ -109,6 +114,12 @@ async def async_add_virtual_entity(
         if entity.id not in sensor_manager.sensors
     )
 
+    registry_device_id = (
+        lifecycle_manager.get_device_registry_id(updated_device.id)
+        if lifecycle_manager is not None
+        else None
+    )
+
     sensor_manager.add_entity(
         device=updated_device,
         entity=virtual_entity,
@@ -116,7 +127,11 @@ async def async_add_virtual_entity(
             virtual_entity.id,
         ),
         name=name,
+        device_id=registry_device_id,
     )
+
+    if lifecycle_manager is not None:
+        lifecycle_manager.async_reconcile_device_entities(updated_device)
 
     return updated_device
 

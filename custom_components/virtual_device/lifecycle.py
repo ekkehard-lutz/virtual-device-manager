@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING
 
-from homeassistant.helpers import device_registry, entity_registry
+from homeassistant.helpers import device_registry, entity_registry, label_registry
 
 from .const import DOMAIN
 from .models import VirtualDevice
@@ -57,7 +57,32 @@ class VirtualDeviceLifecycleManager:
                 name=name,
             )
 
-    def get_device_name(self, device_id: str) -> str | None:
+    def _label_name(self, label_ref: str) -> str | None:
+        """Return the current display name of a Home Assistant label."""
+        entry = label_registry.async_get(self._hass).async_get_label(label_ref)
+        return entry.name if entry is not None else None
+
+    def _async_reconcile_device_name(self, device: VirtualDevice) -> None:
+        """Set an initial HA device name without replacing an existing one."""
+        registry = device_registry.async_get(self._hass)
+        entry = registry.async_get_device_by_identifier(
+            (DOMAIN, device.id),
+            self._config_entry_id,
+        )
+        label_name = self._label_name(device.label_ref)
+
+        if entry is None:
+            self.async_ensure_device(device, name=label_name)
+            return
+
+        if entry.name is None and label_name is not None:
+            registry.async_update_device(entry.id, name=label_name)
+
+    def get_device_name(
+        self,
+        device_id: str,
+        label_ref: str | None = None,
+    ) -> str | None:
         """Return the Home Assistant device name for a VDM device."""
         registry = device_registry.async_get(self._hass)
 
@@ -67,9 +92,22 @@ class VirtualDeviceLifecycleManager:
         )
 
         if entry is None:
-            return None
+            return self._label_name(label_ref) if label_ref else None
 
-        return entry.name
+        return (
+            entry.name_by_user
+            or entry.name
+            or (self._label_name(label_ref) if label_ref else None)
+        )
+
+    def get_device_registry_id(self, device_id: str) -> str | None:
+        """Return the HA registry ID for an existing VDM device."""
+        registry = device_registry.async_get(self._hass)
+        entry = registry.async_get_device_by_identifier(
+            (DOMAIN, device_id),
+            self._config_entry_id,
+        )
+        return entry.id if entry is not None else None
 
     def get_entity_name(self, entity_id: str) -> str | None:
         """Return the Home Assistant entity name for a VDM entity."""
@@ -173,8 +211,8 @@ class VirtualDeviceLifecycleManager:
         }
 
         for device in devices:
-            self.async_ensure_device(device)
-            self._async_reconcile_device_entities(device)
+            self._async_reconcile_device_name(device)
+            self.async_reconcile_device_entities(device)
 
         entity_reg = entity_registry.async_get(self._hass)
         for entry in list(entity_reg.entities.values()):
@@ -196,7 +234,7 @@ class VirtualDeviceLifecycleManager:
             if entry.config_entries == {self._config_entry_id}:
                 device_reg.async_remove_device(entry.id)
 
-    def _async_reconcile_device_entities(
+    def async_reconcile_device_entities(
         self,
         device: VirtualDevice,
     ) -> None:
@@ -225,6 +263,9 @@ class VirtualDeviceLifecycleManager:
             entity_entry = entity_reg.async_get(ha_entity_id)
 
             if entity_entry is None:
+                continue
+
+            if not self._is_own_entity(entity_entry):
                 continue
 
             if entity_entry.device_id != device_entry.id:

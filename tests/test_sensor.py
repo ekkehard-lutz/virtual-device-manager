@@ -72,6 +72,10 @@ def test_sensor_manager_add_entity() -> None:
     sensor = _create_sensor()
     add_entities = MagicMock()
     registry = MagicMock()
+    registry_entry = MagicMock()
+    registry_entry.entity_id = "sensor.virtual_beleuchtung_power"
+    registry_entry.name = None
+    registry.async_get_or_create.return_value = registry_entry
     hass = MagicMock()
 
     manager = VirtualSensorManager(
@@ -100,6 +104,7 @@ def test_sensor_manager_add_entity() -> None:
                 ),
             ],
             name="Beleuchtung Leistung",
+            device_id="ha-device-1",
         )
 
     registry.async_get_or_create.assert_called_once_with(
@@ -108,7 +113,12 @@ def test_sensor_manager_add_entity() -> None:
         unique_id="virtual_device_virtual_beleuchtung_power",
         config_entry="entry-1",
         suggested_object_id="virtual_beleuchtung_power",
-        original_name="Beleuchtung Leistung",
+        original_name="power",
+        device_id="ha-device-1",
+    )
+    registry.async_update_entity.assert_called_once_with(
+        "sensor.virtual_beleuchtung_power",
+        name="Beleuchtung Leistung",
     )
 
     add_entities.assert_called_once()
@@ -127,6 +137,38 @@ def test_sensor_manager_add_entity() -> None:
     assert added_sensor.native_value == 2000.0
 
     assert manager.sensors["virtual_beleuchtung_power"] is added_sensor
+
+
+def test_sensor_manager_add_entity_without_name_uses_ha_default() -> None:
+    """Keep the device class as HA's original name when no name is supplied."""
+    sensor = _create_sensor()
+    add_entities = MagicMock()
+    registry = MagicMock()
+    registry.async_get_or_create.return_value = MagicMock()
+    manager = VirtualSensorManager(MagicMock(), "entry-1")
+    manager.initialize(add_entities)
+
+    with patch(
+        "custom_components.virtual_device.sensor.entity_registry.async_get",
+        return_value=registry,
+    ):
+        manager.add_entity(
+            device=sensor._device,
+            entity=sensor._virtual_entity,
+            values=[],
+            device_id="ha-device-1",
+        )
+
+    registry.async_get_or_create.assert_called_once_with(
+        domain="sensor",
+        platform=DOMAIN,
+        unique_id="virtual_device_virtual_beleuchtung_power",
+        config_entry="entry-1",
+        suggested_object_id="virtual_beleuchtung_power",
+        original_name="power",
+        device_id="ha-device-1",
+    )
+    registry.async_update_entity.assert_not_called()
 
 
 def test_sensor_manager_register_existing_uses_registry_name() -> None:

@@ -119,6 +119,7 @@ class VirtualSensorManager:
         entity: VirtualEntity,
         values: list[SourceValue],
         name: str | None = None,
+        device_id: str | None = None,
     ) -> None:
         """Create and add a virtual sensor to Home Assistant."""
         if self._async_add_entities is None:
@@ -134,14 +135,23 @@ class VirtualSensorManager:
 
         registry = entity_registry.async_get(self._hass)
 
-        registry.async_get_or_create(
-            domain="sensor",
-            platform=DOMAIN,
-            unique_id=sensor.unique_id,
-            config_entry=self._config_entry,
-            suggested_object_id=entity.id,
-            original_name=name,
+        create_kwargs = {
+            "domain": "sensor",
+            "platform": DOMAIN,
+            "unique_id": sensor.unique_id,
+            "config_entry": self._config_entry,
+            "suggested_object_id": entity.id,
+            "original_name": entity.device_class,
+        }
+        if device_id is not None:
+            create_kwargs["device_id"] = device_id
+
+        registry_entry = registry.async_get_or_create(
+            **create_kwargs,
         )
+
+        if name is not None and registry_entry.name != name:
+            registry.async_update_entity(registry_entry.entity_id, name=name)
 
         sensor.update_value(
             values,

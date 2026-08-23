@@ -74,6 +74,27 @@ export async function openCreateVirtualDeviceDialog(
   const labelSelect =
     dialog.querySelector(".label-select");
 
+  let nameTouched = false;
+
+  const updateSuggestedName = () => {
+    if (nameTouched) {
+      return;
+    }
+
+    const selectedLabel = labels.find(
+      (label) => label.label_id === labelSelect.value,
+    );
+
+    nameInput.value = selectedLabel?.name || "";
+  };
+
+  nameInput.addEventListener("input", () => {
+    nameTouched = true;
+  });
+
+  labelSelect.addEventListener("change", updateSuggestedName);
+  updateSuggestedName();
+
   cancelButton.addEventListener(
     "click",
     () => dialog.remove(),

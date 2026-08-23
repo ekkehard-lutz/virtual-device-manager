@@ -37,12 +37,16 @@ def _device_entry(
     device_id: str,
     identifier: str,
     config_entries: set[str] | None = None,
+    name: str | None = None,
+    name_by_user: str | None = None,
 ) -> SimpleNamespace:
     """Create a lightweight device registry entry."""
     return SimpleNamespace(
         id=device_id,
         identifiers={("virtual_device", identifier)},
         config_entries=config_entries or {"entry-1"},
+        name=name,
+        name_by_user=name_by_user,
     )
 
 
@@ -62,6 +66,9 @@ def _manager(monkeypatch):
     entity_registry.entities = {}
     entity_registry.async_get_entity_id.return_value = None
 
+    labels = MagicMock()
+    labels.async_get_label.return_value = None
+
     monkeypatch.setattr(
         lifecycle.device_registry,
         "async_get",
@@ -71,6 +78,11 @@ def _manager(monkeypatch):
         lifecycle.entity_registry,
         "async_get",
         lambda _: entity_registry,
+    )
+    monkeypatch.setattr(
+        lifecycle.label_registry,
+        "async_get",
+        lambda _: labels,
     )
 
     return (
@@ -162,6 +174,196 @@ async def test_reconcile_assigns_existing_entities_to_virtual_device(
         "sensor.virtual_light_power",
         device_id="ha-device-1",
     )
+
+
+@pytest.mark.asyncio
+async def test_reconcile_sets_label_name_when_existing_name_is_none(
+    monkeypatch,
+) -> None:
+    """Initialize a legacy HA device name from its current label name."""
+    manager, _, device_registry, _ = _manager(monkeypatch)
+    device_entry = _device_entry(
+        device_id="ha-device-1",
+        identifier="virtual_light",
+        name=None,
+    )
+    device_registry.async_get_device_by_identifier.return_value = device_entry
+    labels = lifecycle.label_registry.async_get(manager._hass)
+    labels.async_get_label.return_value = SimpleNamespace(name="Beleuchtung")
+
+    await manager.async_reconcile(
+        [VirtualDevice(id="virtual_light", label_ref="light")]
+    )
+
+    device_registry.async_get_or_create.assert_not_called()
+    device_registry.async_update_device.assert_called_once_with(
+        device_entry.id,
+        name="Beleuchtung",
+    )
+
+
+@pytest.mark.asyncio
+async def test_reconcile_creates_missing_device_with_label_name(monkeypatch) -> None:
+    """Create a missing HA device using the current label display name."""
+    manager, _, device_registry, _ = _manager(monkeypatch)
+    created_entry = _device_entry(
+        device_id="ha-device-1",
+        identifier="virtual_light",
+        name="Beleuchtung",
+    )
+    device_registry.async_get_or_create.return_value = created_entry
+    labels = lifecycle.label_registry.async_get(manager._hass)
+    labels.async_get_label.return_value = SimpleNamespace(name="Beleuchtung")
+    device = VirtualDevice(id="virtual_light", label_ref="light")
+
+    await manager.async_reconcile([device])
+
+    device_registry.async_get_or_create.assert_called_once_with(
+        config_entry_id="entry-1",
+        identifiers=virtual_device_identifiers(device.id),
+        name="Beleuchtung",
+    )
+    device_registry.async_update_device.assert_not_called()
+
+
+@pytest.mark.asyncio
+async def test_reconcile_preserves_existing_integration_name(monkeypatch) -> None:
+    """Do not replace an existing integration name with the label name."""
+    manager, _, device_registry, _ = _manager(monkeypatch)
+    device_entry = _device_entry(
+        device_id="ha-device-1",
+        identifier="virtual_light",
+        name="Explicit Device Name",
+    )
+    device_registry.async_get_device_by_identifier.return_value = device_entry
+    labels = lifecycle.label_registry.async_get(manager._hass)
+    labels.async_get_label.return_value = SimpleNamespace(name="Beleuchtung")
+
+    await manager.async_reconcile(
+        [VirtualDevice(id="virtual_light", label_ref="light")]
+    )
+
+    device_registry.async_get_or_create.assert_not_called()
+    device_registry.async_update_device.assert_not_called()
+
+
+@pytest.mark.asyncio
+async def test_reconcile_preserves_manual_device_name(monkeypatch) -> None:
+    """Do not overwrite either name of a manually renamed HA device."""
+    manager, _, device_registry, _ = _manager(monkeypatch)
+    device_entry = _device_entry(
+        device_id="ha-device-1",
+        identifier="virtual_light",
+        name="Explicit Device Name",
+        name_by_user="Manual HA Name",
+    )
+    device_registry.async_get_device_by_identifier.return_value = device_entry
+    labels = lifecycle.label_registry.async_get(manager._hass)
+    labels.async_get_label.return_value = SimpleNamespace(name="Beleuchtung")
+
+    await manager.async_reconcile(
+        [VirtualDevice(id="virtual_light", label_ref="light")]
+    )
+
+    assert device_entry.name_by_user == "Manual HA Name"
+    device_registry.async_get_or_create.assert_not_called()
+    device_registry.async_update_device.assert_not_called()
+
+
+@pytest.mark.asyncio
+async def test_reconcile_does_not_update_correct_entity(monkeypatch) -> None:
+    """Do not write an entity that already points at the correct device."""
+    manager, _, device_registry, entity_registry = _manager(monkeypatch)
+    device_entry = _device_entry(
+        device_id="ha-device-1", identifier="virtual_light"
+    )
+    device_registry.async_get_or_create.return_value = device_entry
+    device_registry.async_get_device_by_identifier.return_value = device_entry
+    entity = _entry(
+        entity_id="sensor.virtual_light_power",
+        unique_id=virtual_entity_unique_id("virtual_light_power"),
+    )
+    entity.device_id = device_entry.id
+    entity_registry.async_get_entity_id.return_value = entity.entity_id
+    entity_registry.async_get.return_value = entity
+    device = VirtualDevice(
+        id="virtual_light",
+        label_ref="light",
+        entities=[VirtualEntity("virtual_light_power", "power", "sum")],
+    )
+
+    await manager.async_reconcile([device])
+
+    entity_registry.async_update_entity.assert_not_called()
+
+
+@pytest.mark.asyncio
+async def test_reconcile_corrects_wrong_device_id(monkeypatch) -> None:
+    """Move a VDM entity from a wrong HA device to its stable VDM device."""
+    manager, _, device_registry, entity_registry = _manager(monkeypatch)
+    device_entry = _device_entry(
+        device_id="ha-device-1", identifier="virtual_light"
+    )
+    device_registry.async_get_or_create.return_value = device_entry
+    device_registry.async_get_device_by_identifier.return_value = device_entry
+    entity = _entry(
+        entity_id="sensor.virtual_light_power",
+        unique_id=virtual_entity_unique_id("virtual_light_power"),
+    )
+    entity.device_id = "wrong-device"
+    entity_registry.async_get_entity_id.return_value = entity.entity_id
+    entity_registry.async_get.return_value = entity
+    device = VirtualDevice(
+        id="virtual_light",
+        label_ref="light",
+        entities=[VirtualEntity("virtual_light_power", "power", "sum")],
+    )
+
+    await manager.async_reconcile([device])
+
+    entity_registry.async_update_entity.assert_called_once_with(
+        entity.entity_id, device_id=device_entry.id
+    )
+
+
+@pytest.mark.asyncio
+async def test_reconcile_leaves_foreign_entity_unchanged(monkeypatch) -> None:
+    """Do not mutate an entity that is not owned by this config entry."""
+    manager, _, device_registry, entity_registry = _manager(monkeypatch)
+    device_entry = _device_entry(
+        device_id="ha-device-1", identifier="virtual_light"
+    )
+    device_registry.async_get_or_create.return_value = device_entry
+    device_registry.async_get_device_by_identifier.return_value = device_entry
+    entity = _entry(
+        entity_id="sensor.foreign",
+        unique_id=virtual_entity_unique_id("virtual_light_power"),
+        config_entry_id="foreign-entry",
+    )
+    entity_registry.async_get_entity_id.return_value = entity.entity_id
+    entity_registry.async_get.return_value = entity
+    device = VirtualDevice(
+        id="virtual_light",
+        label_ref="light",
+        entities=[VirtualEntity("virtual_light_power", "power", "sum")],
+    )
+
+    await manager.async_reconcile([device])
+
+    entity_registry.async_update_entity.assert_not_called()
+
+
+def test_effective_device_name_prefers_name_by_user(monkeypatch) -> None:
+    """Expose a manual HA device name without replacing the integration name."""
+    manager, _, device_registry, _ = _manager(monkeypatch)
+    device_registry.async_get_device_by_identifier.return_value = _device_entry(
+        device_id="ha-device-1",
+        identifier="virtual_light",
+        name="Beleuchtung",
+        name_by_user="Licht im Haus",
+    )
+
+    assert manager.get_device_name("virtual_light") == "Licht im Haus"
 
 
 def test_ensure_device_updates_changed_name(monkeypatch) -> None:
