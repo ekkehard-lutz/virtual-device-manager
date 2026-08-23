@@ -27,13 +27,15 @@ async def async_create_virtual_device(
     device = create_virtual_device(
         hass=hass,
         label_ref=label_ref,
-        name=name,
         existing_virtual_devices=storage.get_virtual_devices(),
     )
 
     await storage.async_save_virtual_device(device)
     if lifecycle_manager is not None:
-        lifecycle_manager.async_ensure_device(device)
+        lifecycle_manager.async_ensure_device(
+            device,
+            name=name,
+        )
 
     return device
 
@@ -56,7 +58,6 @@ async def async_update_virtual_device(
     updated_device = update_virtual_device(
         hass=hass,
         device=device,
-        name=name,
         label_ref=label_ref,
         existing_virtual_devices=storage.get_virtual_devices(),
         confirm_physical_name_conflict=confirm_physical_name_conflict,
@@ -64,7 +65,10 @@ async def async_update_virtual_device(
 
     await storage.async_save_virtual_device(updated_device)
     if lifecycle_manager is not None:
-        lifecycle_manager.async_ensure_device(updated_device)
+        lifecycle_manager.async_ensure_device(
+            updated_device,
+            name=name,
+        )
 
     return updated_device
 
@@ -90,13 +94,9 @@ async def async_add_virtual_entity(
         device=device,
         device_class=device_class,
         aggregation=aggregation,
-        name=name,
     )
 
     await storage.async_save_virtual_device(updated_device)
-
-    if lifecycle_manager is not None:
-        lifecycle_manager.async_ensure_device(updated_device)
 
     source_manager.rebuild_virtual_device(
         hass,
@@ -115,6 +115,7 @@ async def async_add_virtual_entity(
         values=source_manager.get_source_values(
             virtual_entity.id,
         ),
+        name=name,
     )
 
     return updated_device
@@ -129,6 +130,7 @@ async def async_update_virtual_entity(
     aggregation: str | None = None,
     name: str | None = None,
     sensor_manager: VirtualSensorManager | None = None,
+    lifecycle_manager: VirtualDeviceLifecycleManager | None = None,
 ) -> VirtualDevice:
     """Update and persist a virtual entity."""
     device = storage.get_virtual_device(device_id)
@@ -140,10 +142,15 @@ async def async_update_virtual_entity(
         device=device,
         entity_id=entity_id,
         aggregation=aggregation,
-        name=name,
     )
 
     await storage.async_save_virtual_device(updated_device)
+
+    if lifecycle_manager is not None:
+        lifecycle_manager.async_update_entity_name(
+            entity_id,
+            name=name,
+        )
 
     source_manager.rebuild_virtual_device(
         hass,
@@ -159,6 +166,7 @@ async def async_update_virtual_entity(
             device=updated_device,
             entity=updated_entity,
             values=source_manager.get_source_values(entity_id),
+            name=name,
         )
 
     return updated_device

@@ -116,12 +116,10 @@ def test_serialize_virtual_devices() -> None:
     entity.device_class = "energy"
     entity.aggregation = "sum"
     entity.unit = "kWh"
-    entity.name = "Gesamtenergie"
 
     device = MagicMock()
     device.id = "virtual-energie"
     device.label_ref = "label-id-energie"
-    device.name = "Haus Energie"
     device.entities = [entity]
 
     storage.get_virtual_devices.return_value = [device]
@@ -132,13 +130,11 @@ def test_serialize_virtual_devices() -> None:
         {
             "id": "virtual-energie",
             "label_ref": "label-id-energie",
-            "name": "Haus Energie",
             "entities": [
                 {
                     "id": "entity-energie",
                     "device_class": "energy",
                     "aggregation": "sum",
-                    "name": "Gesamtenergie",
                 }
             ],
         }
@@ -275,7 +271,6 @@ async def test_update_virtual_device_websocket_updates_device() -> None:
     updated_device = VirtualDevice(
         id="virtual-energie",
         label_ref="label-id-heizung",
-        name="Haus Heizung",
     )
 
     with patch(
@@ -308,7 +303,6 @@ async def test_update_virtual_device_websocket_updates_device() -> None:
             "device": {
                 "id": "virtual-energie",
                 "label_ref": "label-id-heizung",
-                "name": "Haus Heizung",
                 "entities": [],
             }
         },
@@ -369,13 +363,11 @@ async def test_add_virtual_entity_websocket_adds_entity() -> None:
     updated_device = VirtualDevice(
         id="virtual-energie",
         label_ref="label-id-energie",
-        name="Haus Energie",
         entities=[
             VirtualEntity(
                 id="virtual-energie_power",
                 device_class="power",
                 aggregation="sum",
-                name="Gesamtleistung",
             ),
         ],
     )
@@ -414,13 +406,11 @@ async def test_add_virtual_entity_websocket_adds_entity() -> None:
             "device": {
                 "id": "virtual-energie",
                 "label_ref": "label-id-energie",
-                "name": "Haus Energie",
                 "entities": [
                     {
                         "id": "virtual-energie_power",
                         "device_class": "power",
                         "aggregation": "sum",
-                        "name": "Gesamtleistung",
                     }
                 ],
             }
@@ -482,13 +472,11 @@ async def test_update_virtual_entity_websocket_updates_entity() -> None:
     updated_device = VirtualDevice(
         id="virtual-energie",
         label_ref="label-id-energie",
-        name="Haus Energie",
         entities=[
             VirtualEntity(
                 id="virtual-energie_power",
                 device_class="power",
                 aggregation="avg",
-                name="Durchschnittsleistung",
             ),
         ],
     )
@@ -526,13 +514,11 @@ async def test_update_virtual_entity_websocket_updates_entity() -> None:
             "device": {
                 "id": "virtual-energie",
                 "label_ref": "label-id-energie",
-                "name": "Haus Energie",
                 "entities": [
                     {
                         "id": "virtual-energie_power",
                         "device_class": "power",
                         "aggregation": "avg",
-                        "name": "Durchschnittsleistung",
                     }
                 ],
             }
@@ -594,7 +580,6 @@ async def test_delete_virtual_entity_websocket_deletes_entity() -> None:
     updated_device = VirtualDevice(
         id="virtual-energie",
         label_ref="label-id-energie",
-        name="Haus Energie",
     )
 
     with patch(
@@ -626,7 +611,6 @@ async def test_delete_virtual_entity_websocket_deletes_entity() -> None:
             "device": {
                 "id": "virtual-energie",
                 "label_ref": "label-id-energie",
-                "name": "Haus Energie",
                 "entities": [],
             }
         },

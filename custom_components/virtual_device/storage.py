@@ -16,7 +16,6 @@ def _virtual_entity_to_dict(
 ) -> dict[str, Any]:
     """Convert a VirtualEntity to storage data."""
     return {
-        "name": entity.name,
         "device_class": entity.device_class,
         "aggregation": entity.aggregation,
     }
@@ -29,7 +28,6 @@ def _virtual_entity_from_dict(
     """Create a VirtualEntity from storage data."""
     return VirtualEntity(
         id=entity_id,
-        name=data.get("name"),
         device_class=data["device_class"],
         aggregation=data["aggregation"],
     )
@@ -40,7 +38,6 @@ def _virtual_device_to_dict(
 ) -> dict[str, Any]:
     """Convert a VirtualDevice to storage data."""
     return {
-        "name": device.name,
         "label_ref": device.label_ref,
         "entities": {
             entity.id: _virtual_entity_to_dict(entity) for entity in device.entities
@@ -63,7 +60,6 @@ def _virtual_device_from_dict(
 
     return VirtualDevice(
         id=device_id,
-        name=data.get("name"),
         label_ref=data.get("label_ref", ""),
         entities=entities,
     )

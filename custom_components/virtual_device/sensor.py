@@ -7,6 +7,7 @@ from homeassistant.const import (
     STATE_UNKNOWN,
 )
 from homeassistant.core import Event, HomeAssistant, State
+from homeassistant.helpers import entity_registry
 from homeassistant.helpers.entity import DeviceInfo
 
 from .aggregator import SourceValue, aggregate_values
@@ -31,10 +32,6 @@ class VirtualDeviceSensor(SensorEntity):
         self._virtual_entity = entity
 
         self._attr_unique_id = virtual_entity_unique_id(entity.id)
-
-        self._attr_name = (
-            entity.name if entity.name is not None else entity.device_class
-        )
 
         self._attr_device_class = entity.device_class
         self._attr_native_unit_of_measurement = SUPPORTED_DEVICE_CLASSES[
@@ -64,15 +61,20 @@ class VirtualDeviceSensor(SensorEntity):
             identifiers={
                 ("virtual_device", self._device.id),
             },
-            name=self._device.name,
         )
 
 
 class VirtualSensorManager:
     """Manage virtual sensors at runtime."""
 
-    def __init__(self) -> None:
+    def __init__(
+        self,
+        hass: HomeAssistant,
+        config_entry_id: str,
+    ) -> None:
         """Initialize the sensor manager."""
+        self._hass = hass
+        self._config_entry_id = config_entry_id
         self._sensors: dict[str, VirtualDeviceSensor] = {}
         self._async_add_entities = None
 
@@ -93,6 +95,20 @@ class VirtualSensorManager:
         sensor: VirtualDeviceSensor,
     ) -> None:
         """Register an existing sensor."""
+        registry = entity_registry.async_get(self._hass)
+
+        registry_entry = registry.async_get_entity_id(
+            "sensor",
+            DOMAIN,
+            sensor.unique_id,
+        )
+
+        if registry_entry is not None:
+            entity = registry.async_get(registry_entry)
+
+            if entity is not None:
+                sensor._attr_name = entity.name
+
         self._sensors[sensor._virtual_entity.id] = sensor
 
     def add_entity(
@@ -100,6 +116,7 @@ class VirtualSensorManager:
         device: VirtualDevice,
         entity: VirtualEntity,
         values: list[SourceValue],
+        name: str | None = None,
     ) -> None:
         """Create and add a virtual sensor to Home Assistant."""
         if self._async_add_entities is None:
@@ -111,6 +128,17 @@ class VirtualSensorManager:
         sensor = VirtualDeviceSensor(
             device,
             entity,
+        )
+
+        registry = entity_registry.async_get(self._hass)
+
+        registry.async_get_or_create(
+            domain="sensor",
+            platform=DOMAIN,
+            unique_id=sensor.unique_id,
+            config_entry=self._config_entry_id,
+            suggested_object_id=entity.id,
+            original_name=name,
         )
 
         sensor.update_value(
@@ -163,10 +191,16 @@ class VirtualSensorManager:
         device: VirtualDevice,
         entity: VirtualEntity,
         values: list[SourceValue],
+        name: str | None = None,
     ) -> None:
         """Replace a runtime sensor while retaining its registry unique ID."""
         await self.async_remove_entity(entity.id)
-        self.add_entity(device, entity, values)
+        self.add_entity(
+            device,
+            entity,
+            values,
+            name=name,
+        )
 
 
 async def async_setup_entry(

@@ -17,32 +17,51 @@ from .virtual_device_manager import (
 )
 
 
-def _serialize_virtual_entity(entity) -> dict:
+def _serialize_virtual_entity(
+    entity,
+    lifecycle_manager: VirtualDeviceLifecycleManager | None = None,
+) -> dict:
     """Serialize one virtual entity."""
-    return {
+    result = {
         "id": entity.id,
         "device_class": entity.device_class,
         "aggregation": entity.aggregation,
-        "name": entity.name,
     }
 
+    if lifecycle_manager is not None:
+        result["name"] = lifecycle_manager.get_entity_name(entity.id)
 
-def _serialize_virtual_device(device) -> dict:
+    return result
+
+
+def _serialize_virtual_device(
+    device,
+    lifecycle_manager: VirtualDeviceLifecycleManager | None = None,
+) -> dict:
     """Serialize one virtual device."""
-    return {
+    result = {
         "id": device.id,
         "label_ref": device.label_ref,
-        "name": device.name,
-        "entities": [_serialize_virtual_entity(entity) for entity in device.entities],
+        "entities": [
+            _serialize_virtual_entity(entity, lifecycle_manager)
+            for entity in device.entities
+        ],
     }
+
+    if lifecycle_manager is not None:
+        result["name"] = lifecycle_manager.get_device_name(device.id)
+
+    return result
 
 
 def _serialize_virtual_devices(
     storage: VirtualDeviceStorage,
+    lifecycle_manager: VirtualDeviceLifecycleManager | None = None,
 ) -> list[dict]:
     """Serialize virtual devices for the WebSocket API."""
     return [
-        _serialize_virtual_device(device) for device in storage.get_virtual_devices()
+        _serialize_virtual_device(device, lifecycle_manager)
+        for device in storage.get_virtual_devices()
     ]
 
 
@@ -99,6 +118,7 @@ async def async_register_websocket_commands(
             {
                 "devices": _serialize_virtual_devices(
                     storage,
+                    lifecycle_manager,
                 ),
             },
         )
@@ -179,6 +199,7 @@ async def async_register_websocket_commands(
             {
                 "device": _serialize_virtual_device(
                     updated_device,
+                    lifecycle_manager,
                 ),
             },
         )
@@ -226,6 +247,7 @@ async def async_register_websocket_commands(
             {
                 "device": _serialize_virtual_device(
                     updated_device,
+                    lifecycle_manager,
                 ),
             },
         )
@@ -264,6 +286,7 @@ async def async_register_websocket_commands(
 
         if lifecycle_manager is not None:
             kwargs["sensor_manager"] = sensor_manager
+            kwargs["lifecycle_manager"] = lifecycle_manager
 
         updated_device = await async_update_virtual_entity(**kwargs)
 
@@ -272,6 +295,7 @@ async def async_register_websocket_commands(
             {
                 "device": _serialize_virtual_device(
                     updated_device,
+                    lifecycle_manager,
                 ),
             },
         )
@@ -313,6 +337,7 @@ async def async_register_websocket_commands(
             {
                 "device": _serialize_virtual_device(
                     updated_device,
+                    lifecycle_manager,
                 ),
             },
         )

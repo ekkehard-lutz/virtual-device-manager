@@ -23,14 +23,12 @@ async def test_virtual_device_save_and_load() -> None:
 
     entity = VirtualEntity(
         id="test-entity",
-        name="Gesamtleistung",
         device_class="power",
         aggregation="sum",
     )
 
     device = VirtualDevice(
         id="test-device",
-        name="Haus Energie",
         label_ref="label-id-energie",
         entities=[entity],
     )
@@ -41,12 +39,10 @@ async def test_virtual_device_save_and_load() -> None:
 
     assert loaded is not None
     assert loaded.id == "test-device"
-    assert loaded.name == "Haus Energie"
     assert loaded.label_ref == "label-id-energie"
 
     assert len(loaded.entities) == 1
     assert loaded.entities[0].id == "test-entity"
-    assert loaded.entities[0].name == "Gesamtleistung"
     assert loaded.entities[0].device_class == "power"
     assert loaded.entities[0].aggregation == "sum"
     assert not hasattr(loaded.entities[0], "unit")
@@ -63,7 +59,6 @@ async def test_virtual_device_update_and_save() -> None:
 
     original = VirtualDevice(
         id="test-device",
-        name="Haus Energie",
         label_ref="label-id-energie",
     )
 
@@ -71,7 +66,6 @@ async def test_virtual_device_update_and_save() -> None:
 
     updated = VirtualDevice(
         id="test-device",
-        name="Haus Gesamtenergie",
         label_ref="label-id-energie",
     )
 
@@ -81,7 +75,6 @@ async def test_virtual_device_update_and_save() -> None:
 
     assert loaded is not None
     assert loaded.id == "test-device"
-    assert loaded.name == "Haus Gesamtenergie"
     assert loaded.label_ref == "label-id-energie"
 
     assert len(storage.get_virtual_devices()) == 1
@@ -100,11 +93,9 @@ async def test_load_stored_virtual_devices() -> None:
             "version": 1,
             "virtual_devices": {
                 "device-1": {
-                    "name": "Haus Energie",
                     "label_ref": "label-id-energie",
                     "entities": {
                         "entity-1": {
-                            "name": "Gesamtleistung",
                             "device_class": "power",
                             "aggregation": "sum",
                             "unit": "kW",
@@ -123,12 +114,10 @@ async def test_load_stored_virtual_devices() -> None:
 
     assert device is not None
     assert device.id == "device-1"
-    assert device.name == "Haus Energie"
     assert device.label_ref == "label-id-energie"
 
     assert len(device.entities) == 1
     assert device.entities[0].id == "entity-1"
-    assert device.entities[0].name == "Gesamtleistung"
     assert device.entities[0].device_class == "power"
     assert device.entities[0].aggregation == "sum"
     assert not hasattr(device.entities[0], "unit")
@@ -160,13 +149,11 @@ async def test_multiple_virtual_devices() -> None:
 
     device1 = VirtualDevice(
         id="device-1",
-        name="Haus Energie",
         label_ref="label-id-energie",
     )
 
     device2 = VirtualDevice(
         id="device-2",
-        name="Beleuchtung",
         label_ref="label-id-beleuchtung",
     )
 
@@ -200,7 +187,6 @@ async def test_delete_virtual_device() -> None:
 
     device = VirtualDevice(
         id="device-1",
-        name="Haus Energie",
         label_ref="label-id-energie",
     )
 
@@ -241,7 +227,6 @@ async def test_virtual_device_without_entities() -> None:
 
     device = VirtualDevice(
         id="device-1",
-        name="Licht",
         label_ref="label-id-licht",
     )
 
@@ -250,6 +235,5 @@ async def test_virtual_device_without_entities() -> None:
     loaded = storage.get_virtual_device("device-1")
 
     assert loaded is not None
-    assert loaded.name == "Licht"
     assert loaded.label_ref == "label-id-licht"
     assert loaded.entities == []

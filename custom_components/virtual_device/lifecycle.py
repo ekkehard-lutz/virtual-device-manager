@@ -37,13 +37,80 @@ class VirtualDeviceLifecycleManager:
         self._config_entry_id = config_entry_id
         self._sensor_manager = sensor_manager
 
-    def async_ensure_device(self, device: VirtualDevice) -> None:
+    def async_ensure_device(
+        self,
+        device: VirtualDevice,
+        name: str | None = None,
+    ) -> None:
         """Create or update the Home Assistant device for a VDM device."""
         registry = device_registry.async_get(self._hass)
-        registry.async_get_or_create(
+
+        entry = registry.async_get_or_create(
             config_entry_id=self._config_entry_id,
             identifiers=virtual_device_identifiers(device.id),
-            name=device.name,
+            name=name,
+        )
+
+        if name is not None and entry.name != name:
+            registry.async_update_device(
+                entry.id,
+                name=name,
+            )
+
+    def get_device_name(self, device_id: str) -> str | None:
+        """Return the Home Assistant device name for a VDM device."""
+        registry = device_registry.async_get(self._hass)
+
+        entry = registry.async_get_device_by_identifier(
+            (DOMAIN, device_id),
+            self._config_entry_id,
+        )
+
+        if entry is None:
+            return None
+
+        return entry.name
+
+    def get_entity_name(self, entity_id: str) -> str | None:
+        """Return the Home Assistant entity name for a VDM entity."""
+        registry = entity_registry.async_get(self._hass)
+
+        ha_entity_id = registry.async_get_entity_id(
+            "sensor",
+            DOMAIN,
+            virtual_entity_unique_id(entity_id),
+        )
+
+        if ha_entity_id is None:
+            return None
+
+        entry = registry.async_get(ha_entity_id)
+
+        if entry is None:
+            return None
+
+        return entry.name
+
+    def async_update_entity_name(
+        self,
+        entity_id: str,
+        name: str | None,
+    ) -> None:
+        """Create or update the Home Assistant entity name."""
+        registry = entity_registry.async_get(self._hass)
+
+        ha_entity_id = registry.async_get_entity_id(
+            "sensor",
+            DOMAIN,
+            virtual_entity_unique_id(entity_id),
+        )
+
+        if ha_entity_id is None:
+            return
+
+        registry.async_update_entity(
+            ha_entity_id,
+            name=name,
         )
 
     async def async_remove_entity(self, entity_id: str) -> None:

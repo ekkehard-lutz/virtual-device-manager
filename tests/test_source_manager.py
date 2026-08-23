@@ -145,7 +145,6 @@ def test_rebuild_virtual_device(monkeypatch) -> None:
 
     device = VirtualDevice(
         id="device-1",
-        name="Energie",
         label_ref="label-id-energie",
         entities=[
             VirtualEntity(
@@ -194,7 +193,6 @@ def test_rebuild_virtual_device_multiple_entities(monkeypatch) -> None:
 
     device = VirtualDevice(
         id="device-1",
-        name="Energie",
         label_ref="label-id-energie",
         entities=[
             VirtualEntity(
@@ -269,7 +267,6 @@ def test_rebuild_virtual_device_removes_old_sources(
 
     device = VirtualDevice(
         id="device-1",
-        name="Energie",
         label_ref="label-id-energie",
         entities=[
             VirtualEntity(
@@ -828,7 +825,6 @@ async def test_reconcile_discovers_new_source_entity(
 
     device = VirtualDevice(
         id="device-1",
-        name="Energie",
         label_ref="label-id-energie",
         entities=[
             VirtualEntity(
@@ -914,7 +910,6 @@ async def test_reconcile_removes_no_longer_matching_source_entity(
 
     device = VirtualDevice(
         id="device-1",
-        name="Energie",
         label_ref="label-id-energie",
         entities=[
             VirtualEntity(
@@ -987,7 +982,6 @@ async def test_reconcile_does_not_recreate_virtual_entity(
 
     device = VirtualDevice(
         id="device-1",
-        name="Energie",
         label_ref="label-id-energie",
         entities=[
             VirtualEntity(
@@ -1137,7 +1131,6 @@ async def test_async_reconcile_reports_changed_virtual_entities(monkeypatch) -> 
 
     device = VirtualDevice(
         id="device-1",
-        name="Beleuchtung",
         label_ref="label-id-beleuchtung",
         entities=[
             VirtualEntity(

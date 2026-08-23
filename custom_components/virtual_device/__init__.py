@@ -69,7 +69,10 @@ async def async_setup_entry(
     await storage.async_load()
 
     source_manager = SourceManager()
-    sensor_manager = VirtualSensorManager()
+    sensor_manager = VirtualSensorManager(
+        hass,
+        entry.entry_id,
+    )
     lifecycle_manager = VirtualDeviceLifecycleManager(
         hass,
         entry.entry_id,

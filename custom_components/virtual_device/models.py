@@ -12,12 +12,6 @@ class VirtualEntity:
     id: str
     device_class: str
     aggregation: str
-    name: str | None = None
-
-    def __post_init__(self) -> None:
-        """Apply default values."""
-        if not self.name:
-            self.name = self.device_class
 
 
 @dataclass(slots=True)
@@ -26,5 +20,4 @@ class VirtualDevice:
 
     id: str
     label_ref: str
-    name: str | None = None
     entities: list[VirtualEntity] = field(default_factory=list)

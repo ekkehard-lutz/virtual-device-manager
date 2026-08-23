@@ -30,7 +30,6 @@ async def test_create_virtual_device_saves_device() -> None:
     device = VirtualDevice(
         id="device-1",
         label_ref="label-id-energie",
-        name="Haus Energie",
     )
 
     with patch(
@@ -57,13 +56,11 @@ async def test_update_virtual_device_saves_updated_device() -> None:
     existing = VirtualDevice(
         id="device-1",
         label_ref="label-id-energie",
-        name="Haus Energie",
     )
 
     updated = VirtualDevice(
         id="device-1",
         label_ref="label-id-energie",
-        name="Haus Gesamtenergie",
     )
 
     storage = MagicMock()
@@ -96,13 +93,11 @@ async def test_update_virtual_device_with_label_ref_updates_label() -> None:
     existing = VirtualDevice(
         id="device-1",
         label_ref="label-id-energie",
-        name="Haus Energie",
     )
 
     updated = VirtualDevice(
         id="device-1",
         label_ref="label-id-gesamt",
-        name="Haus Energie",
     )
 
     storage.get_virtual_device.return_value = existing
@@ -124,32 +119,6 @@ async def test_update_virtual_device_with_label_ref_updates_label() -> None:
 
     update_mock.assert_called_once()
     storage.async_save_virtual_device.assert_awaited_once_with(updated)
-
-
-@pytest.mark.asyncio
-async def test_update_virtual_device_without_name_keeps_existing_name() -> None:
-    """Updating without a name keeps the existing device name."""
-    hass = MagicMock()
-    storage = MagicMock()
-
-    existing_device = VirtualDevice(
-        id="virtual_label-id-energie",
-        label_ref="label-id-energie",
-        name="Haus Energie",
-    )
-
-    storage.get_virtual_device.return_value = existing_device
-    storage.async_save_virtual_device = AsyncMock()
-
-    result = await async_update_virtual_device(
-        hass=hass,
-        storage=storage,
-        device_id="virtual_label-id-energie",
-        name=None,
-    )
-
-    assert result.name == "Haus Energie"
-    storage.async_save_virtual_device.assert_awaited_once_with(existing_device)
 
 
 @pytest.mark.asyncio
@@ -177,8 +146,8 @@ async def test_delete_virtual_device_runs_full_lifecycle_before_storage() -> Non
         id="device-1",
         label_ref="label-1",
         entities=[
-            VirtualEntity("device-1_power", "power", "sum", "W"),
-            VirtualEntity("device-1_energy", "energy", "sum", "kWh"),
+            VirtualEntity("device-1_power", "power", "sum"),
+            VirtualEntity("device-1_energy", "energy", "sum"),
         ],
     )
     storage = MagicMock()
@@ -256,13 +225,11 @@ async def test_add_virtual_entity_saves_updated_device() -> None:
     existing = VirtualDevice(
         id="virtual_beleuchtung",
         label_ref="beleuchtung",
-        name="Beleuchtung",
     )
 
     updated = VirtualDevice(
         id="virtual_beleuchtung",
         label_ref="beleuchtung",
-        name="Beleuchtung",
         entities=[
             VirtualEntity(
                 id="virtual_beleuchtung_power",
@@ -303,7 +270,6 @@ async def test_add_virtual_entity_saves_updated_device() -> None:
         device=existing,
         device_class="power",
         aggregation="sum",
-        name=None,
     )
     storage.async_save_virtual_device.assert_awaited_once_with(updated)
 
@@ -316,7 +282,6 @@ async def test_update_virtual_entity_saves_updated_device() -> None:
     existing = VirtualDevice(
         id="virtual_beleuchtung",
         label_ref="beleuchtung",
-        name="Beleuchtung",
         entities=[
             VirtualEntity(
                 id="virtual_beleuchtung_power",
@@ -329,7 +294,6 @@ async def test_update_virtual_entity_saves_updated_device() -> None:
     updated = VirtualDevice(
         id="virtual_beleuchtung",
         label_ref="beleuchtung",
-        name="Beleuchtung",
         entities=[
             VirtualEntity(
                 id="virtual_beleuchtung_power",
@@ -376,7 +340,6 @@ async def test_delete_virtual_entity_saves_updated_device() -> None:
     existing = VirtualDevice(
         id="virtual_beleuchtung",
         label_ref="beleuchtung",
-        name="Beleuchtung",
         entities=[
             VirtualEntity(
                 id="virtual_beleuchtung_power",
@@ -389,7 +352,6 @@ async def test_delete_virtual_entity_saves_updated_device() -> None:
     updated = VirtualDevice(
         id="virtual_beleuchtung",
         label_ref="beleuchtung",
-        name="Beleuchtung",
     )
 
     storage = MagicMock()

@@ -13,7 +13,6 @@ def test_virtual_device_defaults() -> None:
         label_ref="label-id-energie",
     )
 
-    assert device.name is None
     assert device.entities == []
 
 
@@ -25,7 +24,9 @@ def test_virtual_entity_defaults() -> None:
         aggregation="sum",
     )
 
-    assert entity.name == "power"
+    assert entity.id == "test-entity"
+    assert entity.device_class == "power"
+    assert entity.aggregation == "sum"
 
 
 def test_virtual_device_with_entity() -> None:
@@ -38,12 +39,10 @@ def test_virtual_device_with_entity() -> None:
 
     device = VirtualDevice(
         id="test-device",
-        name="Haus Energie",
         label_ref="label-id-energie",
         entities=[entity],
     )
 
-    assert device.name == "Haus Energie"
     assert device.label_ref == "label-id-energie"
     assert len(device.entities) == 1
     assert device.entities[0].device_class == "power"

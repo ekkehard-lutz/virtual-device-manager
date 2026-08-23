@@ -1,11 +1,12 @@
 """Tests for Home Assistant registry lifecycle management."""
 
 from types import SimpleNamespace
-from unittest.mock import AsyncMock, MagicMock
+from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 
 from custom_components.virtual_device import lifecycle
+from custom_components.virtual_device.const import DOMAIN
 from custom_components.virtual_device.lifecycle import (
     VirtualDeviceLifecycleManager,
     virtual_device_identifiers,
@@ -82,21 +83,72 @@ def _manager(monkeypatch):
 def test_empty_device_is_explicitly_registered(monkeypatch) -> None:
     """A device without entities is created in the device registry."""
     manager, _, device_registry, _ = _manager(monkeypatch)
-    device = VirtualDevice(id="virtual_light", label_ref="light", name="Licht")
+    device = VirtualDevice(id="virtual_light", label_ref="light")
 
     manager.async_ensure_device(device)
 
     device_registry.async_get_or_create.assert_called_once_with(
         config_entry_id="entry-1",
         identifiers=virtual_device_identifiers("virtual_light"),
-        name="Licht",
+        name=None,
+    )
+
+
+def test_ensure_device_stores_name_in_registry(monkeypatch) -> None:
+    """Store the virtual device name in the Home Assistant device registry."""
+    manager, _, device_registry, _ = _manager(monkeypatch)
+    device = VirtualDevice(
+        id="virtual_energy",
+        label_ref="energy",
+    )
+
+    manager.async_ensure_device(
+        device,
+        name="Energie",
+    )
+
+    device_registry.async_get_or_create.assert_called_once_with(
+        config_entry_id="entry-1",
+        identifiers=virtual_device_identifiers("virtual_energy"),
+        name="Energie",
+    )
+
+
+def test_ensure_device_updates_changed_name(monkeypatch) -> None:
+    """Update the Home Assistant device name when it changes."""
+    manager, _, device_registry, _ = _manager(monkeypatch)
+    device = VirtualDevice(
+        id="virtual_energy",
+        label_ref="energy",
+    )
+
+    registry_entry = MagicMock()
+    registry_entry.id = "device-registry-id"
+    registry_entry.name = "Alte Energie"
+
+    device_registry.async_get_or_create.return_value = registry_entry
+
+    manager.async_ensure_device(
+        device,
+        name="Neue Energie",
+    )
+
+    device_registry.async_get_or_create.assert_called_once_with(
+        config_entry_id="entry-1",
+        identifiers=virtual_device_identifiers("virtual_energy"),
+        name="Neue Energie",
+    )
+
+    device_registry.async_update_device.assert_called_once_with(
+        "device-registry-id",
+        name="Neue Energie",
     )
 
 
 def test_ensuring_device_is_idempotent(monkeypatch) -> None:
     """Repeated setup uses the same stable device identifier."""
     manager, _, device_registry, _ = _manager(monkeypatch)
-    device = VirtualDevice(id="virtual_light", label_ref="light", name="Licht")
+    device = VirtualDevice(id="virtual_light", label_ref="light")
 
     manager.async_ensure_device(device)
     manager.async_ensure_device(device)
@@ -132,8 +184,8 @@ async def test_delete_device_removes_all_entities_and_registry(monkeypatch) -> N
         id="virtual_light",
         label_ref="light",
         entities=[
-            VirtualEntity("virtual_light_power", "power", "sum", "W"),
-            VirtualEntity("virtual_light_energy", "energy", "sum", "kWh"),
+            VirtualEntity("virtual_light_power", "power", "sum"),
+            VirtualEntity("virtual_light_energy", "energy", "sum"),
         ],
     )
 
@@ -186,3 +238,134 @@ async def test_reconcile_removes_only_orphaned_vdm_entries(monkeypatch) -> None:
         orphan_entity.unique_id
     )
     device_registry.async_remove_device.assert_called_once_with("orphan-device")
+
+
+def test_update_entity_name_updates_registry() -> None:
+    """Update the Home Assistant entity registry name."""
+    hass = MagicMock()
+    sensor_manager = MagicMock()
+
+    manager = VirtualDeviceLifecycleManager(
+        hass,
+        "entry-1",
+        sensor_manager,
+    )
+
+    registry = MagicMock()
+    registry.async_get_entity_id.return_value = "sensor.virtual_power"
+
+    with patch(
+        "custom_components.virtual_device.lifecycle.entity_registry.async_get",
+        return_value=registry,
+    ):
+        manager.async_update_entity_name(
+            "virtual_power",
+            "Neue Hausleistung",
+        )
+
+    registry.async_update_entity.assert_called_once_with(
+        "sensor.virtual_power",
+        name="Neue Hausleistung",
+    )
+
+
+@pytest.mark.asyncio
+async def test_remove_entity_removes_runtime_and_registry() -> None:
+    """Remove a virtual entity from runtime and the entity registry."""
+    hass = MagicMock()
+
+    sensor_manager = MagicMock()
+    sensor_manager.async_remove_entity = AsyncMock()
+
+    manager = VirtualDeviceLifecycleManager(
+        hass,
+        "entry-1",
+        sensor_manager,
+    )
+
+    registry = MagicMock()
+    registry.async_get_entity_id.return_value = "sensor.virtual_power"
+
+    with patch(
+        "custom_components.virtual_device.lifecycle.entity_registry.async_get",
+        return_value=registry,
+    ):
+        await manager.async_remove_entity("virtual_power")
+
+    sensor_manager.async_remove_entity.assert_awaited_once_with(
+        "virtual_power",
+    )
+
+    registry.async_get_entity_id.assert_called_once_with(
+        "sensor",
+        DOMAIN,
+        "virtual_device_virtual_power",
+    )
+
+    registry.async_remove.assert_called_once_with(
+        "sensor.virtual_power",
+    )
+
+
+@pytest.mark.asyncio
+async def test_remove_device_removes_entities_and_device_registry_entry() -> None:
+    """Remove all entities and the device registry entry."""
+    hass = MagicMock()
+
+    sensor_manager = MagicMock()
+    sensor_manager.async_remove_entity = AsyncMock()
+    sensor_manager.async_remove_entities_for_device = AsyncMock()
+
+    manager = VirtualDeviceLifecycleManager(
+        hass,
+        "entry-1",
+        sensor_manager,
+    )
+
+    device = VirtualDevice(
+        id="device-1",
+        label_ref="label-id",
+        entities=[
+            VirtualEntity(
+                id="power",
+                device_class="power",
+                aggregation="sum",
+            ),
+            VirtualEntity(
+                id="energy",
+                device_class="energy",
+                aggregation="sum",
+            ),
+        ],
+    )
+
+    entity_registry_mock = MagicMock()
+    entity_registry_mock.async_get_entity_id.return_value = None
+
+    device_registry_mock = MagicMock()
+    device_registry_entry = MagicMock()
+    device_registry_entry.id = "ha-device-1"
+    device_registry_entry.config_entries = {"entry-1"}
+    device_registry_mock.async_get_device_by_identifier.return_value = (
+        device_registry_entry
+    )
+
+    with (
+        patch(
+            "custom_components.virtual_device.lifecycle.entity_registry.async_get",
+            return_value=entity_registry_mock,
+        ),
+        patch(
+            "custom_components.virtual_device.lifecycle.device_registry.async_get",
+            return_value=device_registry_mock,
+        ),
+    ):
+        await manager.async_remove_device(device)
+
+    sensor_manager.async_remove_entities_for_device.assert_awaited_once_with(
+        "device-1",
+    )
+
+    device_registry_mock.async_remove_device.assert_called_once_with(
+        "ha-device-1",
+    )

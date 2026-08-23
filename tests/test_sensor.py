@@ -1,6 +1,6 @@
 """Tests for Virtual Device Manager virtual sensors."""
 
-from unittest.mock import MagicMock
+from unittest.mock import MagicMock, patch
 
 import pytest
 from homeassistant.const import (
@@ -30,7 +30,6 @@ def _create_sensor() -> VirtualDeviceSensor:
     """Create a test virtual sensor."""
     device = VirtualDevice(
         id="virtual_beleuchtung",
-        name="Energie",
         label_ref="label-id-energie",
         entities=[
             VirtualEntity(
@@ -45,13 +44,6 @@ def _create_sensor() -> VirtualDeviceSensor:
         device,
         device.entities[0],
     )
-
-
-def test_sensor_name() -> None:
-    """Test the sensor name."""
-    sensor = _create_sensor()
-
-    assert sensor.name == "power"
 
 
 def test_sensor_device_class() -> None:
@@ -79,25 +71,44 @@ def test_sensor_manager_add_entity() -> None:
     """Test adding a virtual sensor at runtime."""
     sensor = _create_sensor()
     add_entities = MagicMock()
+    registry = MagicMock()
+    hass = MagicMock()
 
-    manager = VirtualSensorManager()
+    manager = VirtualSensorManager(
+        hass,
+        "entry-1",
+    )
     manager.initialize(add_entities)
 
-    manager.add_entity(
-        device=sensor._device,
-        entity=sensor._virtual_entity,
-        values=[
-            SourceValue(
-                "sensor.power",
-                500,
-                "W",
-            ),
-            SourceValue(
-                "sensor.power_2",
-                1.5,
-                "kW",
-            ),
-        ],
+    with patch(
+        "custom_components.virtual_device.sensor.entity_registry.async_get",
+        return_value=registry,
+    ):
+        manager.add_entity(
+            device=sensor._device,
+            entity=sensor._virtual_entity,
+            values=[
+                SourceValue(
+                    "sensor.power",
+                    500,
+                    "W",
+                ),
+                SourceValue(
+                    "sensor.power_2",
+                    1.5,
+                    "kW",
+                ),
+            ],
+            name="Beleuchtung Leistung",
+        )
+
+    registry.async_get_or_create.assert_called_once_with(
+        domain="sensor",
+        platform=DOMAIN,
+        unique_id="virtual_device_virtual_beleuchtung_power",
+        config_entry="entry-1",
+        suggested_object_id="virtual_beleuchtung_power",
+        original_name="Beleuchtung Leistung",
     )
 
     add_entities.assert_called_once()
@@ -109,11 +120,54 @@ def test_sensor_manager_add_entity() -> None:
         VirtualDeviceSensor,
     )
 
-    assert added_sensor.unique_id == ("virtual_device_virtual_beleuchtung_power")
+    assert added_sensor.unique_id == (
+        "virtual_device_virtual_beleuchtung_power"
+    )
 
     assert added_sensor.native_value == 2000.0
 
     assert manager.sensors["virtual_beleuchtung_power"] is added_sensor
+
+
+def test_sensor_manager_register_existing_uses_registry_name() -> None:
+    """Use the Home Assistant registry name for an existing sensor."""
+    sensor = _create_sensor()
+    hass = MagicMock()
+
+    registry = MagicMock()
+
+    registry_entry = MagicMock()
+    registry_entry.name = "Beleuchtung Leistung"
+
+    registry.async_get_entity_id.return_value = (
+        "sensor.virtual_beleuchtung_power"
+    )
+    registry.async_get.return_value = registry_entry
+
+    manager = VirtualSensorManager(
+        hass,
+        "entry-1",
+    )
+
+    with patch(
+        "custom_components.virtual_device.sensor.entity_registry.async_get",
+        return_value=registry,
+    ):
+        manager.register_existing(sensor)
+
+    assert sensor.name == "Beleuchtung Leistung"
+
+    registry.async_get_entity_id.assert_called_once_with(
+        "sensor",
+        DOMAIN,
+        "virtual_device_virtual_beleuchtung_power",
+    )
+
+    registry.async_get.assert_called_once_with(
+        "sensor.virtual_beleuchtung_power",
+    )
+
+    assert manager.sensors["virtual_beleuchtung_power"] is sensor
 
 
 def test_sensor_manager_update_entities() -> None:
@@ -121,7 +175,10 @@ def test_sensor_manager_update_entities() -> None:
     sensor = _create_sensor()
     sensor.update_value = MagicMock()
 
-    manager = VirtualSensorManager()
+    manager = VirtualSensorManager(
+        MagicMock(),
+        "entry-1",
+    )
     manager.register_existing(sensor)
 
     source_manager = MagicMock()
@@ -191,7 +248,6 @@ def test_sensor_update_value_average() -> None:
     """Test sensor value calculation using average."""
     device = VirtualDevice(
         id="device-1",
-        name="Energie",
         label_ref="label-id-energie",
         entities=[
             VirtualEntity(
@@ -224,7 +280,6 @@ def test_sensor_update_value_min() -> None:
     """Test sensor value calculation using minimum."""
     device = VirtualDevice(
         id="device-1",
-        name="Energie",
         label_ref="label-id-energie",
         entities=[
             VirtualEntity(
@@ -257,7 +312,6 @@ def test_sensor_update_value_max() -> None:
     """Test sensor value calculation using maximum."""
     device = VirtualDevice(
         id="device-1",
-        name="Energie",
         label_ref="label-id-energie",
         entities=[
             VirtualEntity(
@@ -308,7 +362,6 @@ async def test_async_setup_entry_creates_virtual_sensors(
 
     device = VirtualDevice(
         id="device-1",
-        name="Energie",
         label_ref="label-id-energie",
         entities=[
             VirtualEntity(
@@ -327,8 +380,28 @@ async def test_async_setup_entry_creates_virtual_sensors(
     storage = MagicMock()
     storage.get_virtual_devices.return_value = [device]
 
-    sensor_manager = VirtualSensorManager()
+    entity_registry_mock = MagicMock()
 
+    power_registry_entry = MagicMock()
+    power_registry_entry.name = "Hausleistung"
+
+    energy_registry_entry = MagicMock()
+    energy_registry_entry.name = "Hausenergie"
+
+    entity_registry_mock.async_get_entity_id.side_effect = [
+        "sensor.virtual_power",
+        "sensor.virtual_energy",
+    ]
+
+    entity_registry_mock.async_get.side_effect = [
+        power_registry_entry,
+        energy_registry_entry,
+    ]
+
+    sensor_manager = VirtualSensorManager(
+        hass,
+        entry.entry_id,
+    )
     hass.data = {
         DOMAIN: {
             entry.entry_id: {
@@ -343,11 +416,15 @@ async def test_async_setup_entry_creates_virtual_sensors(
 
     from custom_components.virtual_device import sensor
 
-    await sensor.async_setup_entry(
-        hass,
-        entry,
-        add_entities,
-    )
+    with patch(
+        "custom_components.virtual_device.sensor.entity_registry.async_get",
+        return_value=entity_registry_mock,
+    ):
+        await sensor.async_setup_entry(
+            hass,
+            entry,
+            add_entities,
+        )
 
     add_entities.assert_called_once()
 
@@ -355,6 +432,9 @@ async def test_async_setup_entry_creates_virtual_sensors(
 
     assert len(entities) == 2
     assert all(isinstance(entity, VirtualDeviceSensor) for entity in entities)
+
+    assert entities[0].name == "Hausleistung"
+    assert entities[1].name == "Hausenergie"
 
     assert entities[0].unique_id == "virtual_device_power"
     assert entities[1].unique_id == "virtual_device_energy"
@@ -368,14 +448,12 @@ def test_sensor_device_info() -> None:
 
     assert device_info is not None
     assert device_info["identifiers"] == {("virtual_device", "virtual_beleuchtung")}
-    assert device_info["name"] == "Energie"
 
 
 def test_sensors_share_virtual_device() -> None:
     """Test that virtual entities share one HA device."""
     device = VirtualDevice(
         id="device-1",
-        name="Energie",
         label_ref="label-id-energie",
         entities=[
             VirtualEntity(
@@ -410,7 +488,6 @@ def test_different_virtual_devices_have_different_ids() -> None:
     """Test that different virtual devices are distinct."""
     device_1 = VirtualDevice(
         id="device-1",
-        name="Energie",
         label_ref="label-id-energie",
         entities=[
             VirtualEntity(
@@ -423,7 +500,6 @@ def test_different_virtual_devices_have_different_ids() -> None:
 
     device_2 = VirtualDevice(
         id="device-2",
-        name="Energie 2",
         label_ref="label-id-energie",
         entities=[
             VirtualEntity(
@@ -467,7 +543,6 @@ def test_update_sensors_for_source_change() -> None:
     """Update only virtual sensors affected by a source change."""
     device = VirtualDevice(
         id="device-1",
-        name="Energie",
         label_ref="label-id-energie",
         entities=[
             VirtualEntity(
@@ -765,7 +840,6 @@ async def test_async_setup_entry_uses_source_manager_and_creates_listener(
 
     device = VirtualDevice(
         id="device-1",
-        name="Energie",
         label_ref="label-id-energie",
         entities=[
             VirtualEntity(
@@ -779,7 +853,23 @@ async def test_async_setup_entry_uses_source_manager_and_creates_listener(
     storage = MagicMock()
     storage.get_virtual_devices.return_value = [device]
 
-    sensor_manager = VirtualSensorManager()
+    entity_registry_mock = MagicMock()
+
+    registry_entry = MagicMock()
+    registry_entry.name = "Leistung"
+
+    entity_registry_mock.async_get_entity_id.return_value = "sensor.virtual_power"
+    entity_registry_mock.async_get.return_value = registry_entry
+
+    monkeypatch.setattr(
+        "custom_components.virtual_device.sensor.entity_registry.async_get",
+        lambda hass: entity_registry_mock,
+    )
+
+    sensor_manager = VirtualSensorManager(
+        hass,
+        entry.entry_id,
+    )
 
     hass.data = {
         DOMAIN: {
@@ -855,7 +945,6 @@ async def test_state_changed_aggregates_all_cached_sources() -> None:
     """Aggregate all cached source values after one source changes."""
     device = VirtualDevice(
         id="device-1",
-        name="Energie",
         label_ref="label-id-energie",
         entities=[
             VirtualEntity(
