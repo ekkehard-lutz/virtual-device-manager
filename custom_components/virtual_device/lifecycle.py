@@ -174,6 +174,7 @@ class VirtualDeviceLifecycleManager:
 
         for device in devices:
             self.async_ensure_device(device)
+            self._async_reconcile_device_entities(device)
 
         entity_reg = entity_registry.async_get(self._hass)
         for entry in list(entity_reg.entities.values()):
@@ -194,6 +195,43 @@ class VirtualDeviceLifecycleManager:
 
             if entry.config_entries == {self._config_entry_id}:
                 device_reg.async_remove_device(entry.id)
+
+    def _async_reconcile_device_entities(
+        self,
+        device: VirtualDevice,
+    ) -> None:
+        """Ensure VDM entities are assigned to their virtual device."""
+        device_reg = device_registry.async_get(self._hass)
+        entity_reg = entity_registry.async_get(self._hass)
+
+        device_entry = device_reg.async_get_device_by_identifier(
+            (DOMAIN, device.id),
+            self._config_entry_id,
+        )
+
+        if device_entry is None:
+            return
+
+        for virtual_entity in device.entities:
+            ha_entity_id = entity_reg.async_get_entity_id(
+                "sensor",
+                DOMAIN,
+                virtual_entity_unique_id(virtual_entity.id),
+            )
+
+            if ha_entity_id is None:
+                continue
+
+            entity_entry = entity_reg.async_get(ha_entity_id)
+
+            if entity_entry is None:
+                continue
+
+            if entity_entry.device_id != device_entry.id:
+                entity_reg.async_update_entity(
+                    ha_entity_id,
+                    device_id=device_entry.id,
+                )
 
     def _is_own_entity(self, entry) -> bool:
         """Return whether an entity registry entry is unambiguously VDM-owned."""

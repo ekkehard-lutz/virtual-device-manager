@@ -71,7 +71,7 @@ async def async_setup_entry(
     source_manager = SourceManager()
     sensor_manager = VirtualSensorManager(
         hass,
-        entry.entry_id,
+        entry,
     )
     lifecycle_manager = VirtualDeviceLifecycleManager(
         hass,

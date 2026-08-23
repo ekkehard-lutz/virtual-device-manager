@@ -28,6 +28,7 @@ def _entry(
         unique_id=unique_id,
         config_entry_id=config_entry_id,
         platform=platform,
+        device_id=None,
     )
 
 
@@ -111,6 +112,55 @@ def test_ensure_device_stores_name_in_registry(monkeypatch) -> None:
         config_entry_id="entry-1",
         identifiers=virtual_device_identifiers("virtual_energy"),
         name="Energie",
+    )
+
+
+@pytest.mark.asyncio
+async def test_reconcile_assigns_existing_entities_to_virtual_device(
+    monkeypatch,
+) -> None:
+    """Reconciliation assigns existing entities to their virtual device."""
+    manager, _, device_registry, entity_registry = _manager(monkeypatch)
+
+    device_entry = _device_entry(
+        device_id="ha-device-1",
+        identifier="virtual_light",
+    )
+
+    device_registry.async_get_or_create.return_value = device_entry
+    device_registry.async_get_device_by_identifier.return_value = device_entry
+
+    entity = _entry(
+        entity_id="sensor.virtual_light_power",
+        unique_id=virtual_entity_unique_id("virtual_light_power"),
+    )
+
+    entity.device_id = None
+
+    entity_registry.entities = {
+        entity.entity_id: entity,
+    }
+
+    entity_registry.async_get_entity_id.return_value = entity.entity_id
+    entity_registry.async_get.return_value = entity
+
+    device = VirtualDevice(
+        id="virtual_light",
+        label_ref="light",
+        entities=[
+            VirtualEntity(
+                id="virtual_light_power",
+                device_class="power",
+                aggregation="sum",
+            ),
+        ],
+    )
+
+    await manager.async_reconcile([device])
+
+    entity_registry.async_update_entity.assert_called_once_with(
+        "sensor.virtual_light_power",
+        device_id="ha-device-1",
     )
 
 

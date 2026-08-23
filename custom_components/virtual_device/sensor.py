@@ -33,6 +33,8 @@ class VirtualDeviceSensor(SensorEntity):
 
         self._attr_unique_id = virtual_entity_unique_id(entity.id)
 
+        self._attr_name = entity.device_class
+
         self._attr_device_class = entity.device_class
         self._attr_native_unit_of_measurement = SUPPORTED_DEVICE_CLASSES[
             entity.device_class
@@ -70,11 +72,11 @@ class VirtualSensorManager:
     def __init__(
         self,
         hass: HomeAssistant,
-        config_entry_id: str,
+        config_entry: ConfigEntry,
     ) -> None:
         """Initialize the sensor manager."""
         self._hass = hass
-        self._config_entry_id = config_entry_id
+        self._config_entry = config_entry
         self._sensors: dict[str, VirtualDeviceSensor] = {}
         self._async_add_entities = None
 
@@ -136,7 +138,7 @@ class VirtualSensorManager:
             domain="sensor",
             platform=DOMAIN,
             unique_id=sensor.unique_id,
-            config_entry=self._config_entry_id,
+            config_entry=self._config_entry,
             suggested_object_id=entity.id,
             original_name=name,
         )
