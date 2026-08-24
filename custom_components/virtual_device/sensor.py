@@ -34,7 +34,8 @@ class VirtualDeviceSensor(SensorEntity):
 
         self._attr_unique_id = virtual_entity_unique_id(entity.id)
 
-        self._attr_name = entity.device_class
+        self._attr_name = None
+        self._attr_translation_key = entity.device_class
 
         metadata = get_device_class_metadata(entity.device_class)
         self._attr_device_class = entity.device_class
@@ -109,7 +110,7 @@ class VirtualSensorManager:
         if registry_entry is not None:
             entity = registry.async_get(registry_entry)
 
-            if entity is not None:
+            if entity is not None and entity.name is not None:
                 sensor._attr_name = entity.name
 
         self._sensors[sensor._virtual_entity.id] = sensor
@@ -142,7 +143,7 @@ class VirtualSensorManager:
             "unique_id": sensor.unique_id,
             "config_entry": self._config_entry,
             "suggested_object_id": entity.id,
-            "original_name": entity.device_class,
+            "original_name": None,
         }
         if device_id is not None:
             create_kwargs["device_id"] = device_id

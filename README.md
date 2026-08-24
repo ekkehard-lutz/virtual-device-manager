@@ -2,6 +2,21 @@
 
 A Home Assistant custom integration for creating and managing virtual devices and virtual sensor entities based on Home Assistant labels.
 
+## Languages and entity names
+
+The VDM panel supports English and German and follows the active Home Assistant
+user/frontend language. English is used when a language or individual message is
+not available. Default virtual-entity names use Home Assistant entity translation
+metadata; an explicit user/registry name always takes precedence. Language changes
+never alter virtual-device IDs, virtual-entity IDs, entity IDs, unique IDs, device
+classes, aggregations, or stored configuration. Additional languages can be added
+by supplying another integration translation resource.
+
+The panel keeps the existing ES-module loading scheme. After an integration
+update, a normal Home Assistant frontend reload is expected; if a browser retains
+older modules across the update, perform a hard reload. No cache-busting loader
+refactor is included in this beta.
+
 ## History synchronization (Home Assistant 2026.8)
 
 History synchronization is an explicit per-Virtual-Device action. It freezes the

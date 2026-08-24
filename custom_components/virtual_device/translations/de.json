@@ -1,13 +1,123 @@
 {
-  "config": {
-    "step": {
-      "user": {
-        "title": "Virtual Device Manager",
-        "description": "Richte den Virtual Device Manager ein."
-      }
+    "config": {
+        "step": {
+            "user": {
+                "title": "Virtual Device Manager",
+                "description": "Richte die Virtual-Device-Manager-Integration ein."
+            }
+        },
+        "abort": {
+            "already_configured": "Der Virtual Device Manager ist bereits eingerichtet."
+        }
     },
-    "abort": {
-      "already_configured": "Der Virtual Device Manager ist bereits eingerichtet."
+    "entity": {
+        "sensor": {
+            "energy": {
+                "name": "Energie"
+            },
+            "power": {
+                "name": "Leistung"
+            },
+            "temperature": {
+                "name": "Temperatur"
+            },
+            "voltage": {
+                "name": "Spannung"
+            },
+            "current": {
+                "name": "Strom"
+            }
+        }
+    },
+    "panel": {
+        "title": "Virtual Device Manager \u2013 Virtuelle Ger\u00e4te",
+        "entities_title": "Virtuelle Entit\u00e4ten",
+        "actions": {
+            "add": "Hinzuf\u00fcgen",
+            "edit_device": "Virtuelles Ger\u00e4t bearbeiten",
+            "delete_device": "Virtuelles Ger\u00e4t l\u00f6schen",
+            "add_entity": "Virtuelle Entit\u00e4t hinzuf\u00fcgen",
+            "edit_entity": "Virtuelle Entit\u00e4t bearbeiten",
+            "delete_entity": "Virtuelle Entit\u00e4t l\u00f6schen",
+            "create": "Erstellen",
+            "creating": "Wird erstellt\u2026",
+            "save": "Speichern",
+            "saving": "Wird gespeichert\u2026",
+            "cancel": "Abbrechen",
+            "sync": "Verlauf synchronisieren",
+            "syncing": "Synchronisierung l\u00e4uft\u2026"
+        },
+        "fields": {
+            "name": "Name",
+            "label": "Label",
+            "optional": "Optional",
+            "device_class": "Ger\u00e4teklasse",
+            "aggregation": "Aggregation",
+            "entity_id": "Entit\u00e4ts-ID",
+            "name_example": "z. B. Gesamtleistung"
+        },
+        "empty": {
+            "devices": "Keine virtuellen Ger\u00e4te vorhanden.",
+            "entities": "Keine virtuellen Entit\u00e4ten vorhanden."
+        },
+        "loading": "Wird geladen\u2026",
+        "dialogs": {
+            "create_device": "Neues virtuelles Ger\u00e4t",
+            "edit_device": "Virtuelles Ger\u00e4t bearbeiten",
+            "create_entity": "Neue virtuelle Entit\u00e4t",
+            "edit_entity": "Virtuelle Entit\u00e4t bearbeiten",
+            "delete_device": "Virtuelles Ger\u00e4t \u201e{name}\u201c l\u00f6schen?",
+            "delete_entity": "Virtuelle Entit\u00e4t \u201e{name}\u201c l\u00f6schen?",
+            "physical_name_warning": "Dieser Name entspricht dem Namen eines physischen Home-Assistant-Ger\u00e4ts.",
+            "confirm_name_conflict": "Diesen Namen trotzdem verwenden.",
+            "sync_title": "Verlauf synchronisieren",
+            "sync_description": "Die Langzeitstatistik aller virtuellen Entit\u00e4ten in diesem virtuellen Ger\u00e4t wird aus den aktuell zugewiesenen physischen Entit\u00e4ten neu berechnet.",
+            "sync_limitations": "Home Assistant 2026.8 unterst\u00fctzt nur st\u00fcndliche Langzeitstatistiken. Rohverlauf und 5-Minuten-Statistiken werden nicht zur\u00fcckgeschrieben; nicht mehr berechenbare alte Stunden k\u00f6nnen nicht sicher entfernt werden."
+        },
+        "messages": {
+            "load_failed": "Fehler beim Laden der virtuellen Ger\u00e4te.",
+            "create_device_failed": "Das virtuelle Ger\u00e4t konnte nicht erstellt werden.",
+            "update_device_failed": "Das virtuelle Ger\u00e4t konnte nicht aktualisiert werden.",
+            "delete_device_failed": "Das virtuelle Ger\u00e4t konnte nicht gel\u00f6scht werden.",
+            "create_entity_failed": "Die virtuelle Entit\u00e4t konnte nicht erstellt werden.",
+            "update_entity_failed": "Die virtuelle Entit\u00e4t konnte nicht aktualisiert werden.",
+            "delete_entity_failed": "Die virtuelle Entit\u00e4t konnte nicht gel\u00f6scht werden.",
+            "delete_named_entity_failed": "Die virtuelle Entit\u00e4t \u201e{name}\u201c konnte nicht gel\u00f6scht werden.",
+            "device_class_required": "Eine Ger\u00e4teklasse muss angegeben werden.",
+            "sync_failed": "Die Verlaufssynchronisierung ist fehlgeschlagen.",
+            "sync_result": "Verlaufssynchronisierung: {status}",
+            "sync_limitations": "Sichere st\u00fcndliche Upserts werden verwendet; obsolete alte Stunden werden nicht gel\u00f6scht.",
+            "hours_updated": "{count} st\u00fcndliche Werte aktualisiert",
+            "missing_translation": "\u00dcbersetzung nicht verf\u00fcgbar"
+        },
+        "status": {
+            "idle": "Inaktiv",
+            "running": "L\u00e4uft",
+            "success": "Erfolgreich",
+            "partially_successful": "Teilweise erfolgreich",
+            "skipped": "\u00dcbersprungen",
+            "failed": "Fehlgeschlagen"
+        },
+        "reasons": {
+            "no_current_sources": "Keine aktuell zugeordneten Quell-Entit\u00e4ten",
+            "entity_not_registered": "Die virtuelle Entit\u00e4t ist nicht in Home Assistant registriert",
+            "no_historical_data": "Keine historischen Daten verf\u00fcgbar",
+            "unexpected_error": "Ein unerwarteter Fehler ist aufgetreten",
+            "busy": "Die Verlaufssynchronisierung l\u00e4uft bereits"
+        },
+        "device_classes": {
+            "energy": "Energie",
+            "power": "Leistung",
+            "temperature": "Temperatur",
+            "voltage": "Spannung",
+            "current": "Strom"
+        },
+        "aggregations": {
+            "sum": "Summe",
+            "avg": "Mittelwert",
+            "min": "Minimum",
+            "max": "Maximum",
+            "median": "Median"
+        }
     }
-  }
 }

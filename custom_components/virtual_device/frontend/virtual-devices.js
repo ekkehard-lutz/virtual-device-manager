@@ -39,16 +39,10 @@ class VirtualDeviceManagerBootstrap
         module.VirtualDeviceManager;
 
       if (!Implementation) {
-        throw new Error(
-          "Virtual Device Manager: VirtualDeviceManager wurde nicht exportiert",
-        );
+        throw new Error("Virtual Device Manager: implementation was not exported");
       }
 
-      /*
-       * Die Methoden der Implementierung auf
-       * dieses bereits von Home Assistant
-       * erzeugte Element übertragen.
-       */
+      /* Copy implementation methods onto the element created by Home Assistant. */
       const descriptors =
         Object.getOwnPropertyDescriptors(
           Implementation.prototype,
@@ -69,10 +63,7 @@ class VirtualDeviceManagerBootstrap
         );
       }
 
-      /*
-       * Den hass-Setter der Implementierung
-       * direkt übernehmen.
-       */
+      /* Install the implementation's hass setter directly. */
       const hassDescriptor =
         Object.getOwnPropertyDescriptor(
           Implementation.prototype,
@@ -116,7 +107,7 @@ class VirtualDeviceManagerBootstrap
             padding: 16px;
             color: var(--error-color);
           ">
-            Virtual Device Manager konnte nicht geladen werden.
+            Virtual Device Manager failed to load.
           </div>
         </ha-card>
       `;

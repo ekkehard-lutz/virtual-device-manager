@@ -117,6 +117,10 @@ async def test_setup_entry(
         "custom_components.virtual_device.async_register_websocket_commands",
         websocket_mock,
     )
+    monkeypatch.setattr(
+        "custom_components.virtual_device.async_load_translation_resources",
+        AsyncMock(return_value={}),
+    )
 
     hass.config_entries.async_forward_entry_setups = AsyncMock()
 
@@ -147,6 +151,7 @@ async def test_setup_entry(
         sensor_manager,
         lifecycle_manager,
         history_sync_manager,
+        {},
     )
 
     hass.config_entries.async_forward_entry_setups.assert_awaited_once_with(
@@ -220,6 +225,11 @@ async def test_setup_entry_reconciles_after_homeassistant_started() -> None:
         patch(
             "custom_components.virtual_device.async_register_websocket_commands",
             new_callable=AsyncMock,
+        ),
+        patch(
+            "custom_components.virtual_device.async_load_translation_resources",
+            new_callable=AsyncMock,
+            return_value={},
         ),
     ):
         hass.config_entries.async_forward_entry_setups = AsyncMock()

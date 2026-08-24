@@ -1,7 +1,7 @@
 {
   "domain": "virtual_device",
   "name": "Virtual Device Manager",
-  "version": "0.3.0-beta.2",
+  "version": "0.3.0-beta.3",
   "documentation": "https://github.com/ekkehard-lutz/virtual-device-manager",
   "issue_tracker": "https://github.com/ekkehard-lutz/virtual-device-manager/issues",
   "codeowners": [

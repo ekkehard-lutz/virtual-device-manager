@@ -13,26 +13,23 @@ export async function openHistorySyncDialog(
   device,
   onCompleted,
 ) {
+  const t = component._t;
   const dialog = document.createElement("div");
   dialog.className = "dialog-backdrop";
   dialog.innerHTML = `
     <div class="dialog">
-      <div class="dialog-title">Verlauf synchronisieren</div>
+      <div class="dialog-title">${t("dialogs.sync_title")}</div>
       <div class="dialog-content">
         <p>
-          Die Langzeitstatistik aller Virtual Entities in diesem Virtual Device
-          wird aus den aktuell zugewiesenen physischen Entitäten neu berechnet.
+          ${t("dialogs.sync_description")}
         </p>
         <p>
-          Home Assistant 2026.8 unterstützt dabei nur stündliche
-          Langzeitstatistiken. Rohverlauf und 5-Minuten-Statistiken werden nicht
-          zurückgeschrieben; nicht mehr berechenbare alte Stunden können nicht
-          sicher entfernt werden.
+          ${t("dialogs.sync_limitations")}
         </p>
       </div>
       <div class="dialog-actions">
-        <button class="cancel-button">Abbrechen</button>
-        <button class="sync-confirm-button">Verlauf synchronisieren</button>
+        <button class="cancel-button">${t("actions.cancel")}</button>
+        <button class="sync-confirm-button">${t("actions.sync")}</button>
       </div>
     </div>
   `;
@@ -47,7 +44,7 @@ export async function openHistorySyncDialog(
     syncButton.addEventListener("click", async () => {
       cancelButton.disabled = true;
       syncButton.disabled = true;
-      syncButton.textContent = "Synchronisierung läuft …";
+      syncButton.textContent = t("actions.syncing");
       try {
         const result = await synchronizeHistory(component._hass, device.id);
         dialog.remove();
@@ -56,8 +53,11 @@ export async function openHistorySyncDialog(
       } catch (error) {
         cancelButton.disabled = false;
         syncButton.disabled = false;
-        syncButton.textContent = "Verlauf synchronisieren";
-        showDialogError(dialog, "Die Verlaufssynchronisierung ist fehlgeschlagen.");
+        syncButton.textContent = t("actions.sync");
+        showDialogError(
+          dialog,
+          t(error?.code === "busy" ? "reasons.busy" : "messages.sync_failed"),
+        );
         reject(error);
       }
     });
@@ -70,6 +70,7 @@ export async function openCreateVirtualDeviceDialog(
   labels,
   onCreated,
 ) {
+  const t = component._t;
   const dialog = document.createElement("div");
 
   dialog.className = "dialog-backdrop";
@@ -77,19 +78,19 @@ export async function openCreateVirtualDeviceDialog(
   dialog.innerHTML = `
     <div class="dialog">
       <div class="dialog-title">
-        Neues virtuelles Gerät
+        ${t("dialogs.create_device")}
       </div>
 
       <div class="dialog-content">
-        <label>Name</label>
+        <label>${t("fields.name")}</label>
 
         <input
           class="name-input"
           type="text"
-          placeholder="Optional"
+          placeholder="${escapeAttribute(t("fields.optional"))}"
         />
 
-        <label>Label</label>
+        <label>${t("fields.label")}</label>
 
         <select class="label-select">
           ${labels
@@ -108,11 +109,11 @@ export async function openCreateVirtualDeviceDialog(
 
       <div class="dialog-actions">
         <button class="cancel-button">
-          Abbrechen
+          ${t("actions.cancel")}
         </button>
 
         <button class="create-button">
-          Erstellen
+          ${t("actions.create")}
         </button>
       </div>
     </div>
@@ -178,7 +179,7 @@ export async function openCreateVirtualDeviceDialog(
       }
 
       createButton.disabled = true;
-      createButton.textContent = "Erstellen …";
+      createButton.textContent = t("actions.creating");
 
       try {
         const data = {
@@ -199,16 +200,16 @@ export async function openCreateVirtualDeviceDialog(
         await onCreated();
       } catch (error) {
         console.error(
-          "Virtual Device Manager: Fehler beim Erstellen des Virtual Device",
+          "Virtual Device Manager: failed to create virtual device",
           error,
         );
 
         createButton.disabled = false;
-        createButton.textContent = "Erstellen";
+        createButton.textContent = t("actions.create");
 
         showDialogError(
           dialog,
-          "Das virtuelle Gerät konnte nicht erstellt werden.",
+          t("messages.create_device_failed"),
         );
       }
     },
@@ -224,6 +225,7 @@ export async function openEditVirtualDeviceDialog(
   labels,
   onUpdated,
 ) {
+  const t = component._t;
   const dialog = document.createElement("div");
 
   dialog.className = "dialog-backdrop";
@@ -231,11 +233,11 @@ export async function openEditVirtualDeviceDialog(
   dialog.innerHTML = `
     <div class="dialog">
       <div class="dialog-title">
-        Virtuelles Gerät bearbeiten
+        ${t("dialogs.edit_device")}
       </div>
 
       <div class="dialog-content">
-        <label>Name</label>
+        <label>${t("fields.name")}</label>
 
         <input
           class="name-input"
@@ -243,7 +245,7 @@ export async function openEditVirtualDeviceDialog(
           value="${escapeAttribute(device.name || "")}"
         />
 
-        <label>Label</label>
+        <label>${t("fields.label")}</label>
 
         <input
           class="label-input"
@@ -257,8 +259,7 @@ export async function openEditVirtualDeviceDialog(
         />
 
         <div class="physical-name-warning hidden">
-          Der Name entspricht dem Namen eines physischen
-          Home-Assistant-Gerätes.
+          ${t("dialogs.physical_name_warning")}
 
           <label class="confirm-row">
             <input
@@ -266,18 +267,18 @@ export async function openEditVirtualDeviceDialog(
               type="checkbox"
             />
 
-            Diesen Namen trotzdem verwenden.
+            ${t("dialogs.confirm_name_conflict")}
           </label>
         </div>
       </div>
 
       <div class="dialog-actions">
         <button class="cancel-button">
-          Abbrechen
+          ${t("actions.cancel")}
         </button>
 
         <button class="save-button">
-          Speichern
+          ${t("actions.save")}
         </button>
       </div>
     </div>
@@ -324,7 +325,7 @@ export async function openEditVirtualDeviceDialog(
       const name = nameInput.value.trim();
 
       saveButton.disabled = true;
-      saveButton.textContent = "Speichern …";
+      saveButton.textContent = t("actions.saving");
 
       try {
         const result =
@@ -343,34 +344,23 @@ export async function openEditVirtualDeviceDialog(
         await onUpdated(result.device);
       } catch (error) {
         console.error(
-          "Virtual Device Manager: Fehler beim Aktualisieren des Virtual Device",
+          "Virtual Device Manager: failed to update virtual device",
           error,
         );
 
         saveButton.disabled = false;
-        saveButton.textContent = "Speichern";
+        saveButton.textContent = t("actions.save");
 
-        /*
-         * Der Backend-Konflikt wird später noch
-         * genauer über die HA-WebSocket-Fehlerdaten
-         * behandelt.
-         *
-         * Für den ersten Refactoring-Schritt zeigen
-         * wir zunächst eine allgemeine Meldung.
-         */
+        /* WebSocket conflict details can be surfaced in a later refinement. */
         showDialogError(
           dialog,
-          "Das virtuelle Gerät konnte nicht aktualisiert werden.",
+          t("messages.update_device_failed"),
         );
       }
     },
   );
 
-  /*
-   * Die Konfliktabfrage bleibt zunächst bewusst
-   * einfach. Die eigentliche Prüfung erfolgt
-   * serverseitig.
-   */
+  /* The authoritative name conflict check remains server-side. */
   warning.classList.add("hidden");
 
   nameInput.focus();
@@ -383,6 +373,7 @@ export async function openCreateVirtualEntityDialog(
   entityConfig,
   onCreated,
 ) {
+  const t = component._t;
   const dialog = document.createElement("div");
 
   dialog.className = "dialog-backdrop";
@@ -390,41 +381,41 @@ export async function openCreateVirtualEntityDialog(
   dialog.innerHTML = `
     <div class="dialog">
       <div class="dialog-title">
-        Neue Virtual Entity
+        ${t("dialogs.create_entity")}
       </div>
 
       <div class="dialog-content">
 
-        <label>Name</label>
+        <label>${t("fields.name")}</label>
 
         <input
           class="entity-name-input"
           type="text"
-          placeholder="z. B. Gesamtleistung"
+          placeholder="${escapeAttribute(t("fields.name_example"))}"
         />
 
-        <label>Device Class</label>
+        <label>${t("fields.device_class")}</label>
 
         <select class="entity-device-class-select">
           ${entityConfig.device_classes
             .map(
               (deviceClass) => `
                 <option value="${escapeAttribute(deviceClass)}">
-                  ${escapeHtml(deviceClass)}
+                  ${escapeHtml(t(`device_classes.${deviceClass}`))}
                 </option>
               `,
             )
             .join("")}
         </select>
 
-        <label>Aggregation</label>
+        <label>${t("fields.aggregation")}</label>
 
         <select class="entity-aggregation-select">
           ${entityConfig.aggregations
             .map(
               (aggregation) => `
                 <option value="${escapeAttribute(aggregation)}">
-                  ${escapeHtml(aggregation)}
+                  ${escapeHtml(t(`aggregations.${aggregation}`))}
                 </option>
               `,
             )
@@ -436,11 +427,11 @@ export async function openCreateVirtualEntityDialog(
       <div class="dialog-actions">
 
         <button class="cancel-button">
-          Abbrechen
+          ${t("actions.cancel")}
         </button>
 
         <button class="create-button">
-          Erstellen
+          ${t("actions.create")}
         </button>
 
       </div>
@@ -499,7 +490,7 @@ export async function openCreateVirtualEntityDialog(
       if (!deviceClass) {
         showDialogError(
           dialog,
-          "Device Class muss angegeben werden.",
+          t("messages.device_class_required"),
         );
 
         return;
@@ -507,7 +498,7 @@ export async function openCreateVirtualEntityDialog(
 
       createButton.disabled = true;
       createButton.textContent =
-        "Erstellen …";
+        t("actions.creating");
 
       try {
         const updatedDevice =
@@ -528,17 +519,17 @@ export async function openCreateVirtualEntityDialog(
         );
       } catch (error) {
         console.error(
-          "Virtual Device Manager: Fehler beim Erstellen der Virtual Entity",
+          "Virtual Device Manager: failed to create virtual entity",
           error,
         );
 
         createButton.disabled = false;
         createButton.textContent =
-          "Erstellen";
+          t("actions.create");
 
         showDialogError(
           dialog,
-          "Die Virtual Entity konnte nicht erstellt werden.",
+          t("messages.create_entity_failed"),
         );
       }
     },
@@ -555,6 +546,7 @@ export async function openEditVirtualEntityDialog(
   entityConfig,
   onUpdated,
 ) {
+  const t = component._t;
   const dialog = document.createElement("div");
 
   dialog.className = "dialog-backdrop";
@@ -563,12 +555,12 @@ export async function openEditVirtualEntityDialog(
     <div class="dialog">
 
       <div class="dialog-title">
-        Virtual Entity bearbeiten
+        ${t("dialogs.edit_entity")}
       </div>
 
       <div class="dialog-content">
 
-        <label>Name</label>
+        <label>${t("fields.name")}</label>
 
         <input
           class="entity-name-input"
@@ -578,7 +570,7 @@ export async function openEditVirtualEntityDialog(
           )}"
         />
 
-        <label>Entity-ID</label>
+        <label>${t("fields.entity_id")}</label>
 
         <input
           class="entity-id-input"
@@ -589,7 +581,7 @@ export async function openEditVirtualEntityDialog(
           disabled
         />
 
-        <label>Device Class</label>
+        <label>${t("fields.device_class")}</label>
 
         <select class="entity-device-class-select">
           ${entityConfig.device_classes
@@ -599,14 +591,14 @@ export async function openEditVirtualEntityDialog(
                   value="${escapeAttribute(deviceClass)}"
                   ${deviceClass === entity.device_class ? "selected" : ""}
                 >
-                  ${escapeHtml(deviceClass)}
+                  ${escapeHtml(t(`device_classes.${deviceClass}`))}
                 </option>
               `,
             )
             .join("")}
         </select>
 
-        <label>Aggregation</label>
+        <label>${t("fields.aggregation")}</label>
 
         <select class="entity-aggregation-select">
           ${entityConfig.aggregations
@@ -616,7 +608,7 @@ export async function openEditVirtualEntityDialog(
                   value="${escapeAttribute(aggregation)}"
                   ${aggregation === entity.aggregation ? "selected" : ""}
                 >
-                  ${escapeHtml(aggregation)}
+                  ${escapeHtml(t(`aggregations.${aggregation}`))}
                 </option>
               `,
             )
@@ -628,11 +620,11 @@ export async function openEditVirtualEntityDialog(
       <div class="dialog-actions">
 
         <button class="cancel-button">
-          Abbrechen
+          ${t("actions.cancel")}
         </button>
 
         <button class="save-button">
-          Speichern
+          ${t("actions.save")}
         </button>
 
       </div>
@@ -695,7 +687,7 @@ export async function openEditVirtualEntityDialog(
 
       saveButton.disabled = true;
       saveButton.textContent =
-        "Speichern …";
+        t("actions.saving");
 
       try {
         const updatedDevice =
@@ -717,17 +709,17 @@ export async function openEditVirtualEntityDialog(
         );
       } catch (error) {
         console.error(
-          "Virtual Device Manager: Fehler beim Aktualisieren der Virtual Entity",
+          "Virtual Device Manager: failed to update virtual entity",
           error,
         );
 
         saveButton.disabled = false;
         saveButton.textContent =
-          "Speichern";
+          t("actions.save");
 
         showDialogError(
           dialog,
-          "Die Virtual Entity konnte nicht aktualisiert werden.",
+          t("messages.update_entity_failed"),
         );
       }
     },
@@ -748,7 +740,7 @@ export async function confirmDeleteVirtualEntity(
 
   if (
     !window.confirm(
-      `Virtual Entity „${name}“ wirklich löschen?`,
+      component._t("dialogs.delete_entity", {name}),
     )
   ) {
     return;
@@ -769,12 +761,12 @@ export async function confirmDeleteVirtualEntity(
     );
   } catch (error) {
     console.error(
-      "Virtual Device Manager: Fehler beim Löschen der Virtual Entity",
+      "Virtual Device Manager: failed to delete virtual entity",
       error,
     );
 
     component._showMessage(
-      "Die Virtual Entity konnte nicht gelöscht werden.",
+      component._t("messages.delete_entity_failed"),
     );
   }
 }

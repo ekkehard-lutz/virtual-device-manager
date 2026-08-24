@@ -9,6 +9,7 @@ from .lifecycle import VirtualDeviceLifecycleManager
 from .sensor import VirtualSensorManager
 from .source_manager import SourceManager
 from .storage import VirtualDeviceStorage
+from .translation import panel_translations
 from .virtual_device_manager import (
     async_add_virtual_entity,
     async_delete_virtual_device,
@@ -30,9 +31,7 @@ def _serialize_virtual_entity(
     }
 
     if lifecycle_manager is not None:
-        result["name"] = (
-            lifecycle_manager.get_entity_name(entity.id) or entity.device_class
-        )
+        result["name"] = lifecycle_manager.get_entity_name(entity.id)
     else:
         result["name"] = entity.device_class
 
@@ -79,8 +78,26 @@ async def async_register_websocket_commands(
     sensor_manager: VirtualSensorManager,
     lifecycle_manager: VirtualDeviceLifecycleManager | None = None,
     history_sync_manager: HistorySyncManager | None = None,
+    translation_resources: dict[str, dict] | None = None,
 ) -> None:
     """Register Virtual Device Manager WebSocket commands."""
+
+    @websocket_api.websocket_command(
+        {"type": "virtual_device/get_translations", "language": str}
+    )
+    @websocket_api.async_response
+    async def handle_get_translations(
+        hass: HomeAssistant,
+        connection: websocket_api.ActiveConnection,
+        msg: dict,
+    ) -> None:
+        """Return panel translations for the active Home Assistant language."""
+        connection.send_result(
+            msg["id"],
+            panel_translations(translation_resources or {}, msg.get("language")),
+        )
+
+    websocket_api.async_register_command(hass, handle_get_translations)
 
     @websocket_api.websocket_command(
         {
@@ -396,6 +413,7 @@ async def async_register_websocket_commands(
                         "entity_id": item.virtual_entity_id,
                         "status": item.status,
                         "reason": item.reason,
+                        "reason_code": item.reason_code,
                         "range_start": (
                             item.range_start.isoformat() if item.range_start else None
                         ),

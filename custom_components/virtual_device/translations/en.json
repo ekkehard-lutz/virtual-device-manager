@@ -1,13 +1,123 @@
 {
-  "config": {
-    "step": {
-      "user": {
-        "title": "Virtual Device Manager",
-        "description": "Set up the Virtual Device Manager integration."
-      }
+    "config": {
+        "step": {
+            "user": {
+                "title": "Virtual Device Manager",
+                "description": "Set up the Virtual Device Manager integration."
+            }
+        },
+        "abort": {
+            "already_configured": "The Virtual Device Manager is already configured."
+        }
     },
-    "abort": {
-      "already_configured": "The Virtual Device Manager is already configured."
+    "entity": {
+        "sensor": {
+            "energy": {
+                "name": "Energy"
+            },
+            "power": {
+                "name": "Power"
+            },
+            "temperature": {
+                "name": "Temperature"
+            },
+            "voltage": {
+                "name": "Voltage"
+            },
+            "current": {
+                "name": "Current"
+            }
+        }
+    },
+    "panel": {
+        "title": "Virtual Device Manager \u2013 Virtual Devices",
+        "entities_title": "Virtual Entities",
+        "actions": {
+            "add": "Add",
+            "edit_device": "Edit virtual device",
+            "delete_device": "Delete virtual device",
+            "add_entity": "Add virtual entity",
+            "edit_entity": "Edit virtual entity",
+            "delete_entity": "Delete virtual entity",
+            "create": "Create",
+            "creating": "Creating\u2026",
+            "save": "Save",
+            "saving": "Saving\u2026",
+            "cancel": "Cancel",
+            "sync": "Synchronize history",
+            "syncing": "Synchronization running\u2026"
+        },
+        "fields": {
+            "name": "Name",
+            "label": "Label",
+            "optional": "Optional",
+            "device_class": "Device class",
+            "aggregation": "Aggregation",
+            "entity_id": "Entity ID",
+            "name_example": "e.g. Total power"
+        },
+        "empty": {
+            "devices": "No virtual devices available.",
+            "entities": "No virtual entities available."
+        },
+        "loading": "Loading\u2026",
+        "dialogs": {
+            "create_device": "New virtual device",
+            "edit_device": "Edit virtual device",
+            "create_entity": "New virtual entity",
+            "edit_entity": "Edit virtual entity",
+            "delete_device": "Delete virtual device \"{name}\"?",
+            "delete_entity": "Delete virtual entity \"{name}\"?",
+            "physical_name_warning": "This name matches the name of a physical Home Assistant device.",
+            "confirm_name_conflict": "Use this name anyway.",
+            "sync_title": "Synchronize history",
+            "sync_description": "The long-term statistics of all virtual entities in this virtual device will be recalculated from the physical entities currently assigned to them.",
+            "sync_limitations": "Home Assistant 2026.8 supports hourly long-term statistics only. Raw history and 5-minute statistics are not written back, and obsolete hours that can no longer be calculated cannot be removed safely."
+        },
+        "messages": {
+            "load_failed": "Failed to load virtual devices.",
+            "create_device_failed": "The virtual device could not be created.",
+            "update_device_failed": "The virtual device could not be updated.",
+            "delete_device_failed": "The virtual device could not be deleted.",
+            "create_entity_failed": "The virtual entity could not be created.",
+            "update_entity_failed": "The virtual entity could not be updated.",
+            "delete_entity_failed": "The virtual entity could not be deleted.",
+            "delete_named_entity_failed": "The virtual entity \"{name}\" could not be deleted.",
+            "device_class_required": "A device class is required.",
+            "sync_failed": "History synchronization failed.",
+            "sync_result": "History synchronization: {status}",
+            "sync_limitations": "Safe hourly upserts are used; obsolete historical hours are not deleted.",
+            "hours_updated": "{count} hourly slots updated",
+            "missing_translation": "Translation unavailable"
+        },
+        "status": {
+            "idle": "Idle",
+            "running": "Running",
+            "success": "Successful",
+            "partially_successful": "Partially successful",
+            "skipped": "Skipped",
+            "failed": "Failed"
+        },
+        "reasons": {
+            "no_current_sources": "No current source entities",
+            "entity_not_registered": "The virtual entity is not registered in Home Assistant",
+            "no_historical_data": "No historical data available",
+            "unexpected_error": "An unexpected error occurred",
+            "busy": "History synchronization is already running"
+        },
+        "device_classes": {
+            "energy": "Energy",
+            "power": "Power",
+            "temperature": "Temperature",
+            "voltage": "Voltage",
+            "current": "Current"
+        },
+        "aggregations": {
+            "sum": "Sum",
+            "avg": "Average",
+            "min": "Minimum",
+            "max": "Maximum",
+            "median": "Median"
+        }
     }
-  }
 }

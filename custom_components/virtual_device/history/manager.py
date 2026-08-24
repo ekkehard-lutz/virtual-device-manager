@@ -121,6 +121,7 @@ class HistorySyncManager:
                 entity.virtual_entity_id,
                 SyncStatus.SKIPPED,
                 reason="No current source entities",
+                reason_code="no_current_sources",
             )
 
         statistic_id = self._resolve_statistic_id(entity.virtual_entity_id)
@@ -129,6 +130,7 @@ class HistorySyncManager:
                 entity.virtual_entity_id,
                 SyncStatus.FAILED,
                 reason="Virtual entity is not registered in Home Assistant",
+                reason_code="entity_not_registered",
             )
 
         _LOGGER.info("History sync VE %s started", entity.virtual_entity_id)
@@ -188,6 +190,7 @@ class HistorySyncManager:
                     entity.virtual_entity_id,
                     SyncStatus.SKIPPED,
                     reason="No usable historical data",
+                    reason_code="no_historical_data",
                 )
 
             # Persistence is deliberately last: failures while reading or calculating
@@ -218,7 +221,10 @@ class HistorySyncManager:
         except Exception as err:  # Per-VE error isolation is intentional.
             _LOGGER.exception("History sync VE %s failed", entity.virtual_entity_id)
             return VirtualEntitySyncResult(
-                entity.virtual_entity_id, SyncStatus.FAILED, reason=str(err)
+                entity.virtual_entity_id,
+                SyncStatus.FAILED,
+                reason=str(err),
+                reason_code="unexpected_error",
             )
 
     @staticmethod

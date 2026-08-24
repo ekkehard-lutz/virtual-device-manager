@@ -19,6 +19,7 @@ from .lifecycle import VirtualDeviceLifecycleManager
 from .sensor import VirtualSensorManager
 from .source_manager import SourceManager
 from .storage import VirtualDeviceStorage
+from .translation import async_load_translation_resources
 from .virtual_device_services import async_register_virtual_device_services
 from .websocket import async_register_websocket_commands
 
@@ -88,6 +89,7 @@ async def async_setup_entry(
             else None
         ),
     )
+    translation_resources = await async_load_translation_resources(hass)
 
     await lifecycle_manager.async_reconcile(
         storage.get_virtual_devices(),
@@ -107,6 +109,7 @@ async def async_setup_entry(
         sensor_manager,
         lifecycle_manager,
         history_sync_manager,
+        translation_resources,
     )
 
     hass.data[DOMAIN][entry.entry_id] = {

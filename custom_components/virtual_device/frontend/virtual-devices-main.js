@@ -20,6 +20,10 @@ import {
 import {
   addStyles,
 } from "./virtual-device-styles.js";
+import {
+  createTranslator,
+  loadTranslations,
+} from "./virtual-device-translations.js";
 
 
 class VirtualDeviceManager
@@ -27,10 +31,23 @@ class VirtualDeviceManager
 
   set hass(hass) {
     this._hass = hass;
-
-    if (!this._initialized) {
+    const language = hass.language || "en";
+    if (!this._initialized || language !== this._language) {
       this._initialized = true;
-      this._loadDevices();
+      this._language = language;
+      this._loadTranslationsAndDevices();
+    }
+  }
+
+  async _loadTranslationsAndDevices() {
+    try {
+      const translations = await loadTranslations(this._hass);
+      this._t = createTranslator(translations.messages);
+      await this._loadDevices();
+    } catch (error) {
+      console.error("Virtual Device Manager: failed to load translations", error);
+      this._t = createTranslator();
+      this._renderError(error);
     }
   }
 
@@ -64,7 +81,7 @@ class VirtualDeviceManager
       devices.length === 0
         ? `
           <div class="empty">
-            Keine virtuellen Geräte vorhanden.
+            ${this._t("empty.devices")}
           </div>
         `
         : `
@@ -82,12 +99,12 @@ class VirtualDeviceManager
       <ha-card>
         <div class="header">
           <div class="title">
-            Virtual Device Manager – Virtual Devices
+            ${this._t("title")}
           </div>
 
           <ha-button class="add-button">
             <ha-icon icon="mdi:plus"></ha-icon>
-            Hinzufügen
+            ${this._t("actions.add")}
           </ha-button>
         </div>
 
@@ -260,8 +277,8 @@ class VirtualDeviceManager
               <button
                 class="history-sync-button"
                 data-device-id="${this._escapeAttribute(device.id)}"
-                title="Langzeitstatistik synchronisieren"
-                aria-label="Langzeitstatistik synchronisieren"
+                title="${this._escapeAttribute(this._t("actions.sync"))}"
+                aria-label="${this._escapeAttribute(this._t("actions.sync"))}"
                 ${this._historySyncRunning ? "disabled" : ""}
               >
                 <ha-icon icon="mdi:history"></ha-icon>
@@ -272,8 +289,8 @@ class VirtualDeviceManager
                 data-device-id="${this._escapeAttribute(
                   device.id,
                 )}"
-                title="Virtuelles Gerät bearbeiten"
-                aria-label="Virtuelles Gerät bearbeiten"
+                title="${this._escapeAttribute(this._t("actions.edit_device"))}"
+                aria-label="${this._escapeAttribute(this._t("actions.edit_device"))}"
               >
                 <ha-icon
                   icon="mdi:pencil-outline"
@@ -288,8 +305,8 @@ class VirtualDeviceManager
                 data-device-name="${this._escapeAttribute(
                   name,
                 )}"
-                title="Virtuelles Gerät löschen"
-                aria-label="Virtuelles Gerät löschen"
+                title="${this._escapeAttribute(this._t("actions.delete_device"))}"
+                aria-label="${this._escapeAttribute(this._t("actions.delete_device"))}"
               >
                 <ha-icon
                   icon="mdi:delete-outline"
@@ -303,7 +320,7 @@ class VirtualDeviceManager
           <div class="device-details">
 
             <span>
-              Label:
+              ${this._t("fields.label")}:
               <strong>
                 ${this._escape(
                   device.label_ref,
@@ -316,7 +333,7 @@ class VirtualDeviceManager
           <div class="entities-header">
 
             <span class="entities-title">
-              Virtual Entities
+              ${this._t("entities_title")}
             </span>
 
             <button
@@ -324,8 +341,8 @@ class VirtualDeviceManager
               data-device-id="${this._escapeAttribute(
                 device.id,
               )}"
-              title="Virtual Entity hinzufügen"
-              aria-label="Virtual Entity hinzufügen"
+              title="${this._escapeAttribute(this._t("actions.add_entity"))}"
+              aria-label="${this._escapeAttribute(this._t("actions.add_entity"))}"
             >
               <ha-icon
                 icon="mdi:plus"
@@ -340,7 +357,7 @@ class VirtualDeviceManager
               entities.length === 0
                 ? `
                   <div class="entities-empty">
-                    Keine Virtual Entities vorhanden.
+                    ${this._t("empty.entities")}
                   </div>
                 `
                 : entities
@@ -373,22 +390,28 @@ class VirtualDeviceManager
     try {
       await openHistorySyncDialog(this, device, async (result) => {
         const lines = [
-          `Verlaufssynchronisierung: ${result.status}`,
+          this._t("messages.sync_result", {status: this._t(`status.${result.status}`)}),
           ...result.entities.map((entity) => {
             const range = entity.range_start && entity.range_end
               ? ` (${entity.range_start} – ${entity.range_end})`
               : "";
-            const detail = entity.reason
-              ? `: ${entity.reason}`
-              : `: ${entity.hourly_slots_upserted} Stunden aktualisiert`;
-            return `${entity.entity_id}: ${entity.status}${detail}${range}`;
+            const reason = entity.reason_code
+              ? this._t(`reasons.${entity.reason_code}`)
+              : entity.reason;
+            const detail = reason
+              ? `: ${reason}`
+              : `: ${this._t("messages.hours_updated", {count: entity.hourly_slots_upserted})}`;
+            return `${entity.entity_id}: ${this._t(`status.${entity.status}`)}${detail}${range}`;
           }),
-          "V1 verwendet sichere stündliche Upserts; obsolete alte Stunden werden nicht gelöscht.",
+          this._t("messages.sync_limitations"),
         ];
         summary = lines.join("\n");
       });
     } catch (error) {
-      console.error("Virtual Device Manager: Verlaufssynchronisierung fehlgeschlagen", error);
+      console.error("Virtual Device Manager: history synchronization failed", error);
+      this._showMessage(
+        this._t(error?.code === "busy" ? "reasons.busy" : "messages.sync_failed"),
+      );
     } finally {
       this._historySyncRunning = false;
       this._render();
@@ -410,20 +433,20 @@ class VirtualDeviceManager
         <div class="entity-main">
 
           <div class="entity-name">
-            ${this._escape(name)}
+            ${this._escape(entity.name || this._t(`device_classes.${entity.device_class}`))}
           </div>
 
           <div class="entity-details">
 
             <span>
               ${this._escape(
-                entity.device_class,
+                this._t(`device_classes.${entity.device_class}`),
               )}
             </span>
 
             <span>
               ${this._escape(
-                entity.aggregation,
+                this._t(`aggregations.${entity.aggregation}`),
               )}
             </span>
 
@@ -445,8 +468,8 @@ class VirtualDeviceManager
             data-entity-id="${this._escapeAttribute(
               entity.id,
             )}"
-            title="Virtual Entity bearbeiten"
-            aria-label="Virtual Entity bearbeiten"
+            title="${this._escapeAttribute(this._t("actions.edit_entity"))}"
+            aria-label="${this._escapeAttribute(this._t("actions.edit_entity"))}"
           >
             <ha-icon
               icon="mdi:pencil-outline"
@@ -464,8 +487,8 @@ class VirtualDeviceManager
             data-entity-name="${this._escapeAttribute(
               name,
             )}"
-            title="Virtual Entity löschen"
-            aria-label="Virtual Entity löschen"
+            title="${this._escapeAttribute(this._t("actions.delete_entity"))}"
+            aria-label="${this._escapeAttribute(this._t("actions.delete_entity"))}"
           >
             <ha-icon
               icon="mdi:delete-outline"
@@ -485,7 +508,7 @@ class VirtualDeviceManager
   ) {
     if (
       !window.confirm(
-        `Virtuelles Gerät „${deviceName}“ wirklich löschen?`,
+        this._t("dialogs.delete_device", {name: deviceName}),
       )
     ) {
       return;
@@ -500,12 +523,12 @@ class VirtualDeviceManager
       await this._loadDevices();
     } catch (error) {
       console.error(
-        "Virtual Device Manager: Fehler beim Löschen des Virtual Device",
+        "Virtual Device Manager: failed to delete virtual device",
         error,
       );
 
       this._showMessage(
-        "Das virtuelle Gerät konnte nicht gelöscht werden.",
+        this._t("messages.delete_device_failed"),
       );
     }
   }
@@ -613,7 +636,7 @@ class VirtualDeviceManager
       );
     } catch (error) {
       console.error(
-        "Virtual Device Manager: Fehler beim Öffnen des Virtual Entity Dialogs",
+        "Virtual Device Manager: failed to open virtual entity dialog",
         error,
       );
 
@@ -642,7 +665,7 @@ class VirtualDeviceManager
       );
     } catch (error) {
       console.error(
-        "Virtual Device Manager: Fehler beim Öffnen des Virtual Entity Dialogs",
+        "Virtual Device Manager: failed to open virtual entity dialog",
         error,
       );
 
@@ -689,12 +712,12 @@ class VirtualDeviceManager
       );
     } catch (error) {
       console.error(
-        "Virtual Device Manager: Fehler beim Löschen der Virtual Entity",
+        "Virtual Device Manager: failed to delete virtual entity",
         error,
       );
 
       this._showMessage(
-        `Die Virtual Entity „${entityName}“ konnte nicht gelöscht werden.`,
+        this._t("messages.delete_named_entity_failed", {name: entityName}),
       );
     }
   }
@@ -730,12 +753,12 @@ class VirtualDeviceManager
       <ha-card>
         <div class="header">
           <div class="title">
-            Virtual Device Manager – Virtual Devices
+            ${this._t?.("title") || "Virtual Device Manager"}
           </div>
         </div>
 
         <div class="content loading">
-          Wird geladen …
+          ${this._t?.("loading") || "Loading…"}
         </div>
       </ha-card>
     `;
@@ -754,12 +777,12 @@ class VirtualDeviceManager
       <ha-card>
         <div class="header">
           <div class="title">
-            Virtual Device Manager – Virtual Devices
+            ${this._t?.("title") || "Virtual Device Manager"}
           </div>
         </div>
 
         <div class="content error">
-          Fehler beim Laden der virtuellen Geräte.
+          ${this._t?.("messages.load_failed") || "Failed to load virtual devices."}
         </div>
       </ha-card>
     `;

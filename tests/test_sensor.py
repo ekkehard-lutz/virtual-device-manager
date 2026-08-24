@@ -171,7 +171,7 @@ def test_sensor_manager_add_entity() -> None:
         unique_id="virtual_device_virtual_beleuchtung_power",
         config_entry="entry-1",
         suggested_object_id="virtual_beleuchtung_power",
-        original_name="power",
+        original_name=None,
         device_id="ha-device-1",
     )
     registry.async_update_entity.assert_called_once_with(
@@ -195,8 +195,8 @@ def test_sensor_manager_add_entity() -> None:
     assert manager.sensors["virtual_beleuchtung_power"] is added_sensor
 
 
-def test_sensor_manager_add_entity_without_name_uses_ha_default() -> None:
-    """Keep the device class as HA's original name when no name is supplied."""
+def test_sensor_manager_add_entity_without_name_uses_translated_default() -> None:
+    """Leave the registry name unset so HA can translate the entity name."""
     sensor = _create_sensor()
     add_entities = MagicMock()
     registry = MagicMock()
@@ -221,7 +221,7 @@ def test_sensor_manager_add_entity_without_name_uses_ha_default() -> None:
         unique_id="virtual_device_virtual_beleuchtung_power",
         config_entry="entry-1",
         suggested_object_id="virtual_beleuchtung_power",
-        original_name="power",
+        original_name=None,
         device_id="ha-device-1",
     )
     registry.async_update_entity.assert_not_called()

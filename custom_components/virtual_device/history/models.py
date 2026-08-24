@@ -102,6 +102,7 @@ class VirtualEntitySyncResult:
     virtual_entity_id: str
     status: SyncStatus
     reason: str | None = None
+    reason_code: str | None = None
     range_start: datetime | None = None
     range_end: datetime | None = None
     resolutions: tuple[HistoryResolution, ...] = ()
