@@ -6,6 +6,7 @@ import {
   deleteVirtualEntity,
   synchronizeHistory,
 } from "./virtual-device-api.js";
+import {resolveEntityName} from "./virtual-device-translations.js";
 
 
 export async function openHistorySyncDialog(
@@ -391,7 +392,9 @@ export async function openCreateVirtualEntityDialog(
         <input
           class="entity-name-input"
           type="text"
-          placeholder="${escapeAttribute(t("fields.name_example"))}"
+          placeholder="${escapeAttribute(
+            t(`device_classes.${entityConfig.device_classes[0]}`),
+          )}"
         />
 
         <label>${t("fields.device_class")}</label>
@@ -461,6 +464,13 @@ export async function openCreateVirtualEntityDialog(
       ".entity-aggregation-select",
     );
 
+  const updateNamePlaceholder = () => {
+    nameInput.placeholder = t(`device_classes.${deviceClassSelect.value}`);
+  };
+
+  deviceClassSelect.addEventListener("change", updateNamePlaceholder);
+  updateNamePlaceholder();
+
   cancelButton.addEventListener(
     "click",
     () => dialog.remove(),
@@ -508,7 +518,7 @@ export async function openCreateVirtualEntityDialog(
               device_id: device.id,
               device_class: deviceClass,
               aggregation,
-              name: name || undefined,
+              name: resolveEntityName(name, deviceClass, t),
             },
           );
 
@@ -567,6 +577,9 @@ export async function openEditVirtualEntityDialog(
           type="text"
           value="${escapeAttribute(
             entity.name || "",
+          )}"
+          placeholder="${escapeAttribute(
+            t(`device_classes.${entity.device_class}`),
           )}"
         />
 
@@ -659,6 +672,13 @@ export async function openEditVirtualEntityDialog(
       ".entity-device-class-select",
     );
 
+  const updateNamePlaceholder = () => {
+    nameInput.placeholder = t(`device_classes.${deviceClassSelect.value}`);
+  };
+
+  deviceClassSelect.addEventListener("change", updateNamePlaceholder);
+  updateNamePlaceholder();
+
   cancelButton.addEventListener(
     "click",
     () => dialog.remove(),
@@ -698,7 +718,7 @@ export async function openEditVirtualEntityDialog(
               entity_id: entity.id,
               device_class: deviceClass,
               aggregation,
-              name: name || undefined,
+              name: resolveEntityName(name, deviceClass, t),
             },
           );
 

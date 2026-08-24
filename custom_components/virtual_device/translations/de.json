@@ -53,8 +53,7 @@
             "optional": "Optional",
             "device_class": "Ger\u00e4teklasse",
             "aggregation": "Aggregation",
-            "entity_id": "Entit\u00e4ts-ID",
-            "name_example": "z. B. Gesamtleistung"
+            "entity_id": "Entit\u00e4ts-ID"
         },
         "empty": {
             "devices": "Keine virtuellen Ger\u00e4te vorhanden.",

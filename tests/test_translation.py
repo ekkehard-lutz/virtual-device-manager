@@ -15,6 +15,22 @@ from tests.test_sensor import _create_sensor
 TRANSLATIONS = Path("custom_components/virtual_device/translations")
 DEVICE_CLASSES = {"energy", "power", "temperature", "voltage", "current"}
 AGGREGATIONS = {"sum", "avg", "min", "max", "median"}
+ENTITY_NAMES = {
+    "en": {
+        "energy": "Energy",
+        "power": "Power",
+        "temperature": "Temperature",
+        "voltage": "Voltage",
+        "current": "Current",
+    },
+    "de": {
+        "energy": "Energie",
+        "power": "Leistung",
+        "temperature": "Temperatur",
+        "voltage": "Spannung",
+        "current": "Strom",
+    },
+}
 
 
 def _keys(value: dict, prefix: str = "") -> set[str]:
@@ -33,10 +49,15 @@ def test_translation_resources_have_identical_complete_structure() -> None:
         for language in ("en", "de")
     }
     assert _keys(resources["en"]) == _keys(resources["de"])
-    for resource in resources.values():
+    for language, resource in resources.items():
         assert set(resource["panel"]["device_classes"]) == DEVICE_CLASSES
         assert set(resource["panel"]["aggregations"]) == AGGREGATIONS
         assert set(resource["entity"]["sensor"]) == DEVICE_CLASSES
+        assert resource["panel"]["device_classes"] == ENTITY_NAMES[language]
+        assert {
+            device_class: data["name"]
+            for device_class, data in resource["entity"]["sensor"].items()
+        } == ENTITY_NAMES[language]
 
 
 def test_language_normalization_and_english_fallback() -> None:

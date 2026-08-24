@@ -6,11 +6,14 @@ A Home Assistant custom integration for creating and managing virtual devices an
 
 The VDM panel supports English and German and follows the active Home Assistant
 user/frontend language. English is used when a language or individual message is
-not available. Default virtual-entity names use Home Assistant entity translation
-metadata; an explicit user/registry name always takes precedence. Language changes
-never alter virtual-device IDs, virtual-entity IDs, entity IDs, unique IDs, device
-classes, aggregations, or stored configuration. Additional languages can be added
-by supplying another integration translation resource.
+not available. When a virtual entity is created without an explicit name, VDM
+resolves the device-class name in the current language and persists it in the Home
+Assistant Entity Registry. Later language changes do not rename existing entities,
+and an explicit user/registry name always takes precedence. Clearing a name in VDM
+resets it to the localized default for the currently selected device class.
+Language changes never alter virtual-device IDs, virtual-entity IDs, entity IDs,
+unique IDs, device classes, aggregations, or stored configuration. Additional
+languages can be added by supplying another integration translation resource.
 
 The panel keeps the existing ES-module loading scheme. After an integration
 update, a normal Home Assistant frontend reload is expected; if a browser retains

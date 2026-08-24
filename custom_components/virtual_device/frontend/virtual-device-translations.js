@@ -21,3 +21,8 @@ export async function loadTranslations(hass) {
     language: hass.language || "en",
   });
 }
+
+export function resolveEntityName(name, deviceClass, translate) {
+  const enteredName = String(name || "").trim();
+  return enteredName || translate(`device_classes.${deviceClass}`);
+}

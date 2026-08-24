@@ -53,8 +53,7 @@
             "optional": "Optional",
             "device_class": "Device class",
             "aggregation": "Aggregation",
-            "entity_id": "Entity ID",
-            "name_example": "e.g. Total power"
+            "entity_id": "Entity ID"
         },
         "empty": {
             "devices": "No virtual devices available.",
