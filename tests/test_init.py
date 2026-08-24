@@ -130,6 +130,7 @@ async def test_setup_entry(
     storage.async_load.assert_awaited_once()
 
     sensor_manager = hass.data[DOMAIN][entry.entry_id]["sensor_manager"]
+    history_sync_manager = hass.data[DOMAIN][entry.entry_id]["history_sync_manager"]
     assert hass.data[DOMAIN][entry.entry_id]["lifecycle_manager"] is lifecycle_manager
 
     services_mock.assert_awaited_once_with(
@@ -145,6 +146,7 @@ async def test_setup_entry(
         source_manager,
         sensor_manager,
         lifecycle_manager,
+        history_sync_manager,
     )
 
     hass.config_entries.async_forward_entry_setups.assert_awaited_once_with(

@@ -4,7 +4,65 @@ import {
   addVirtualEntity,
   updateVirtualEntity,
   deleteVirtualEntity,
+  synchronizeHistory,
 } from "./virtual-device-api.js";
+
+
+export async function openHistorySyncDialog(
+  component,
+  device,
+  onCompleted,
+) {
+  const dialog = document.createElement("div");
+  dialog.className = "dialog-backdrop";
+  dialog.innerHTML = `
+    <div class="dialog">
+      <div class="dialog-title">Verlauf synchronisieren</div>
+      <div class="dialog-content">
+        <p>
+          Die Langzeitstatistik aller Virtual Entities in diesem Virtual Device
+          wird aus den aktuell zugewiesenen physischen Entitäten neu berechnet.
+        </p>
+        <p>
+          Home Assistant 2026.8 unterstützt dabei nur stündliche
+          Langzeitstatistiken. Rohverlauf und 5-Minuten-Statistiken werden nicht
+          zurückgeschrieben; nicht mehr berechenbare alte Stunden können nicht
+          sicher entfernt werden.
+        </p>
+      </div>
+      <div class="dialog-actions">
+        <button class="cancel-button">Abbrechen</button>
+        <button class="sync-confirm-button">Verlauf synchronisieren</button>
+      </div>
+    </div>
+  `;
+  component.appendChild(dialog);
+  const cancelButton = dialog.querySelector(".cancel-button");
+  const syncButton = dialog.querySelector(".sync-confirm-button");
+  return await new Promise((resolve, reject) => {
+    cancelButton.addEventListener("click", () => {
+      dialog.remove();
+      resolve(null);
+    });
+    syncButton.addEventListener("click", async () => {
+      cancelButton.disabled = true;
+      syncButton.disabled = true;
+      syncButton.textContent = "Synchronisierung läuft …";
+      try {
+        const result = await synchronizeHistory(component._hass, device.id);
+        dialog.remove();
+        await onCompleted(result);
+        resolve(result);
+      } catch (error) {
+        cancelButton.disabled = false;
+        syncButton.disabled = false;
+        syncButton.textContent = "Verlauf synchronisieren";
+        showDialogError(dialog, "Die Verlaufssynchronisierung ist fehlgeschlagen.");
+        reject(error);
+      }
+    });
+  });
+}
 
 
 export async function openCreateVirtualDeviceDialog(

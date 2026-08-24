@@ -71,6 +71,26 @@ async def test_get_entity_config_websocket_command_is_registered() -> None:
 
 
 @pytest.mark.asyncio
+async def test_history_sync_command_requires_explicit_manager_registration() -> None:
+    """Register the manual history command only when its manager is available."""
+    with patch(
+        "custom_components.virtual_device.websocket.websocket_api.async_register_command"
+    ) as register_mock:
+        await async_register_websocket_commands(
+            MagicMock(),
+            MagicMock(),
+            MagicMock(),
+            MagicMock(),
+            history_sync_manager=MagicMock(),
+        )
+
+    registered_handlers = [call.args[1] for call in register_mock.call_args_list]
+    assert any(
+        handler.__name__ == "handle_history_sync" for handler in registered_handlers
+    )
+
+
+@pytest.mark.asyncio
 async def test_get_entity_config_websocket_returns_configuration() -> None:
     """Return supported device classes and aggregations."""
     hass = MagicMock()

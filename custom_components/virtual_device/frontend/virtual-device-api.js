@@ -105,3 +105,14 @@ export async function deleteVirtualEntity(
 
   return result.device;
 }
+
+
+export async function synchronizeHistory(
+  hass,
+  deviceId,
+) {
+  return await hass.callWS({
+    type: "virtual_device/history_sync",
+    device_id: deviceId,
+  });
+}

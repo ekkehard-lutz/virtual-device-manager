@@ -33,7 +33,8 @@ async def test_create_virtual_device_saves_device() -> None:
     )
 
     with patch(
-        "custom_components.virtual_device.virtual_device_manager.create_virtual_device",
+        "custom_components.virtual_device.virtual_device_manager."
+        "create_virtual_device",
         return_value=device,
     ) as create_mock:
         result = await async_create_virtual_device(
@@ -100,8 +101,7 @@ async def test_create_virtual_device_explicit_registry_name_wins() -> None:
     device = VirtualDevice(id="virtual_abrakadabra", label_ref="abrakadabra")
 
     with patch(
-        "custom_components.virtual_device.virtual_device_manager."
-        "create_virtual_device",
+        "custom_components.virtual_device.virtual_device_manager.create_virtual_device",
         return_value=device,
     ):
         await async_create_virtual_device(

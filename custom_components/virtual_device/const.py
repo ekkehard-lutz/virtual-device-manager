@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+from .device_class_metadata import DEVICE_CLASS_METADATA
+
 DOMAIN = "virtual_device"
 NAME = "Virtual Device Manager"
 
@@ -17,7 +19,7 @@ AGGREGATIONS: tuple[str, ...] = (
     "sum",
 )
 
-SUPPORTED_DEVICE_CLASSES: dict[str, str | None] = {
-    "energy": "Wh",
-    "power": "W",
+SUPPORTED_DEVICE_CLASSES: dict[str, str] = {
+    device_class: metadata.native_unit
+    for device_class, metadata in DEVICE_CLASS_METADATA.items()
 }

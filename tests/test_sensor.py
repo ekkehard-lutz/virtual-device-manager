@@ -3,6 +3,7 @@
 from unittest.mock import MagicMock, patch
 
 import pytest
+from homeassistant.components.sensor import SensorStateClass
 from homeassistant.const import (
     STATE_UNAVAILABLE,
 )
@@ -58,6 +59,23 @@ def test_sensor_unit() -> None:
     sensor = _create_sensor()
 
     assert sensor.native_unit_of_measurement == "W"
+
+
+def test_sensor_power_state_class() -> None:
+    """Test statistics metadata for a power virtual sensor."""
+    sensor = _create_sensor()
+
+    assert sensor.state_class is SensorStateClass.MEASUREMENT
+
+
+def test_sensor_energy_state_class() -> None:
+    """Test statistics metadata for an energy virtual sensor."""
+    device = VirtualDevice(id="lighting", label_ref="lighting")
+    entity = VirtualEntity(id="energy", device_class="energy", aggregation="sum")
+
+    sensor = VirtualDeviceSensor(device, entity)
+
+    assert sensor.state_class is SensorStateClass.TOTAL_INCREASING
 
 
 def test_sensor_initial_value() -> None:
@@ -130,9 +148,7 @@ def test_sensor_manager_add_entity() -> None:
         VirtualDeviceSensor,
     )
 
-    assert added_sensor.unique_id == (
-        "virtual_device_virtual_beleuchtung_power"
-    )
+    assert added_sensor.unique_id == ("virtual_device_virtual_beleuchtung_power")
 
     assert added_sensor.native_value == 2000.0
 
@@ -181,9 +197,7 @@ def test_sensor_manager_register_existing_uses_registry_name() -> None:
     registry_entry = MagicMock()
     registry_entry.name = "Beleuchtung Leistung"
 
-    registry.async_get_entity_id.return_value = (
-        "sensor.virtual_beleuchtung_power"
-    )
+    registry.async_get_entity_id.return_value = "sensor.virtual_beleuchtung_power"
     registry.async_get.return_value = registry_entry
 
     manager = VirtualSensorManager(

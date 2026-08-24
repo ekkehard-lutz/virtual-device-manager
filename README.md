@@ -2,6 +2,23 @@
 
 A Home Assistant custom integration for creating and managing virtual devices and virtual sensor entities based on Home Assistant labels.
 
+## History synchronization (Home Assistant 2026.8)
+
+History synchronization is an explicit per-Virtual-Device action. It freezes the
+currently assigned physical source entities and calculates raw, aligned
+five-minute, and aligned hourly virtual history with the same aggregation and unit
+conversion semantics used by live entities.
+
+Home Assistant Core 2026.8 supports reading all three resolutions and importing
+hourly internal statistics through `async_import_statistics()`. It does not expose
+supported public integration APIs for importing historical raw states, importing
+five-minute statistics, or atomically replacing a selected statistics range.
+Consequently VDM V1 persists hourly long-term statistics only. Re-synchronization
+uses safe hourly upserts: recalculated slots are inserted or updated, while an
+obsolete old slot absent from the new result cannot safely be removed. VDM never
+uses direct Recorder SQL, fabricated historical events, private table-specific
+imports, or destructive clear-and-reimport behavior.
+
 ## Status
 
 **Version: 0.1.0**

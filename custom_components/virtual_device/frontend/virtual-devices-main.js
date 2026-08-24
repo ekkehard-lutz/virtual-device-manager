@@ -14,6 +14,7 @@ import {
   openCreateVirtualEntityDialog,
   openEditVirtualEntityDialog,
   confirmDeleteVirtualEntity,
+  openHistorySyncDialog,
 } from "./virtual-device-dialog.js";
 
 import {
@@ -104,6 +105,19 @@ class VirtualDeviceManager
         "click",
         () => this._openCreateDialog(),
       );
+
+    this
+      .querySelectorAll(".history-sync-button")
+      .forEach((button) => {
+        button.addEventListener("click", () => {
+          const device = this._devices.find(
+            (item) => item.id === button.dataset.deviceId,
+          );
+          if (device) {
+            this._openHistorySyncDialog(device);
+          }
+        });
+      });
 
     this
       .querySelectorAll(".edit-button")
@@ -244,6 +258,16 @@ class VirtualDeviceManager
             <div class="device-actions">
 
               <button
+                class="history-sync-button"
+                data-device-id="${this._escapeAttribute(device.id)}"
+                title="Langzeitstatistik synchronisieren"
+                aria-label="Langzeitstatistik synchronisieren"
+                ${this._historySyncRunning ? "disabled" : ""}
+              >
+                <ha-icon icon="mdi:history"></ha-icon>
+              </button>
+
+              <button
                 class="edit-button"
                 data-device-id="${this._escapeAttribute(
                   device.id,
@@ -336,6 +360,42 @@ class VirtualDeviceManager
 
       </div>
     `;
+  }
+
+
+  async _openHistorySyncDialog(device) {
+    if (this._historySyncRunning) {
+      return;
+    }
+    this._historySyncRunning = true;
+    this._render();
+    let summary = null;
+    try {
+      await openHistorySyncDialog(this, device, async (result) => {
+        const lines = [
+          `Verlaufssynchronisierung: ${result.status}`,
+          ...result.entities.map((entity) => {
+            const range = entity.range_start && entity.range_end
+              ? ` (${entity.range_start} – ${entity.range_end})`
+              : "";
+            const detail = entity.reason
+              ? `: ${entity.reason}`
+              : `: ${entity.hourly_slots_upserted} Stunden aktualisiert`;
+            return `${entity.entity_id}: ${entity.status}${detail}${range}`;
+          }),
+          "V1 verwendet sichere stündliche Upserts; obsolete alte Stunden werden nicht gelöscht.",
+        ];
+        summary = lines.join("\n");
+      });
+    } catch (error) {
+      console.error("Virtual Device Manager: Verlaufssynchronisierung fehlgeschlagen", error);
+    } finally {
+      this._historySyncRunning = false;
+      this._render();
+      if (summary) {
+        this._showMessage(summary);
+      }
+    }
   }
 
 

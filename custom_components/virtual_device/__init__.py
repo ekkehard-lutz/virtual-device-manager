@@ -14,6 +14,7 @@ from .const import (
     DOMAIN,
     PLATFORMS,
 )
+from .history.manager import HistorySyncManager
 from .lifecycle import VirtualDeviceLifecycleManager
 from .sensor import VirtualSensorManager
 from .source_manager import SourceManager
@@ -78,6 +79,15 @@ async def async_setup_entry(
         entry.entry_id,
         sensor_manager,
     )
+    history_sync_manager = HistorySyncManager(
+        hass,
+        source_manager,
+        lambda virtual_entity_id: (
+            sensor.entity_id
+            if (sensor := sensor_manager.sensors.get(virtual_entity_id)) is not None
+            else None
+        ),
+    )
 
     await lifecycle_manager.async_reconcile(
         storage.get_virtual_devices(),
@@ -96,6 +106,7 @@ async def async_setup_entry(
         source_manager,
         sensor_manager,
         lifecycle_manager,
+        history_sync_manager,
     )
 
     hass.data[DOMAIN][entry.entry_id] = {
@@ -103,6 +114,7 @@ async def async_setup_entry(
         "source_manager": source_manager,
         "sensor_manager": sensor_manager,
         "lifecycle_manager": lifecycle_manager,
+        "history_sync_manager": history_sync_manager,
     }
 
     await hass.config_entries.async_forward_entry_setups(

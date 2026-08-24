@@ -11,7 +11,8 @@ from homeassistant.helpers import entity_registry
 from homeassistant.helpers.entity import DeviceInfo
 
 from .aggregator import SourceValue, aggregate_values
-from .const import DOMAIN, SUPPORTED_DEVICE_CLASSES
+from .const import DOMAIN
+from .device_class_metadata import get_device_class_metadata
 from .lifecycle import virtual_entity_unique_id
 from .models import VirtualDevice, VirtualEntity
 from .source_manager import SourceManager
@@ -35,10 +36,10 @@ class VirtualDeviceSensor(SensorEntity):
 
         self._attr_name = entity.device_class
 
+        metadata = get_device_class_metadata(entity.device_class)
         self._attr_device_class = entity.device_class
-        self._attr_native_unit_of_measurement = SUPPORTED_DEVICE_CLASSES[
-            entity.device_class
-        ]
+        self._attr_native_unit_of_measurement = metadata.native_unit
+        self._attr_state_class = metadata.state_class
         self._attr_native_value = None
 
     def update_value(

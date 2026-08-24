@@ -33,6 +33,7 @@ export function addStyles(component) {
     .message {
       padding: 16px 0;
       color: var(--secondary-text-color);
+      white-space: pre-line;
     }
 
     .error {
@@ -86,6 +87,7 @@ export function addStyles(component) {
 
     .edit-button,
     .delete-button,
+    .history-sync-button,
     .add-entity-button {
       display: flex;
       align-items: center;
@@ -102,6 +104,7 @@ export function addStyles(component) {
     }
 
     .edit-button:hover,
+    .history-sync-button:hover,
     .add-entity-button:hover {
       color: var(--primary-color);
       background: var(--secondary-background-color);
@@ -307,13 +310,15 @@ export function addStyles(component) {
     }
 
     .create-button,
-    .save-button {
+    .save-button,
+    .sync-confirm-button {
       background: var(--primary-color);
       color: var(--text-primary-color);
     }
 
     .create-button:disabled,
-    .save-button:disabled {
+    .save-button:disabled,
+    .sync-confirm-button:disabled {
       opacity: 0.6;
       cursor: default;
     }

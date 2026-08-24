@@ -4,6 +4,7 @@ from homeassistant.components import websocket_api
 from homeassistant.core import HomeAssistant
 
 from .const import AGGREGATIONS, SUPPORTED_DEVICE_CLASSES
+from .history.manager import HistorySyncBusyError, HistorySyncManager
 from .lifecycle import VirtualDeviceLifecycleManager
 from .sensor import VirtualSensorManager
 from .source_manager import SourceManager
@@ -30,8 +31,7 @@ def _serialize_virtual_entity(
 
     if lifecycle_manager is not None:
         result["name"] = (
-            lifecycle_manager.get_entity_name(entity.id)
-            or entity.device_class
+            lifecycle_manager.get_entity_name(entity.id) or entity.device_class
         )
     else:
         result["name"] = entity.device_class
@@ -54,9 +54,7 @@ def _serialize_virtual_device(
     }
 
     if lifecycle_manager is not None:
-        result["name"] = (
-            lifecycle_manager.get_device_name(device.id, device.label_ref)
-        )
+        result["name"] = lifecycle_manager.get_device_name(device.id, device.label_ref)
     else:
         result["name"] = None
 
@@ -80,6 +78,7 @@ async def async_register_websocket_commands(
     source_manager: SourceManager,
     sensor_manager: VirtualSensorManager,
     lifecycle_manager: VirtualDeviceLifecycleManager | None = None,
+    history_sync_manager: HistorySyncManager | None = None,
 ) -> None:
     """Register Virtual Device Manager WebSocket commands."""
 
@@ -355,3 +354,57 @@ async def async_register_websocket_commands(
         hass,
         handle_delete_virtual_entity,
     )
+
+    if history_sync_manager is None:
+        return
+
+    @websocket_api.require_admin
+    @websocket_api.websocket_command(
+        {
+            "type": "virtual_device/history_sync",
+            "device_id": str,
+        }
+    )
+    @websocket_api.async_response
+    async def handle_history_sync(
+        hass: HomeAssistant,
+        connection: websocket_api.ActiveConnection,
+        msg: dict,
+    ) -> None:
+        """Run the only explicit entry point for history synchronization."""
+        device = storage.get_virtual_device(msg["device_id"])
+        if device is None:
+            connection.send_error(msg["id"], "not_found", "Virtual device not found")
+            return
+        try:
+            result = await history_sync_manager.async_sync(device)
+        except HistorySyncBusyError as err:
+            connection.send_error(msg["id"], "busy", str(err))
+            return
+        connection.send_result(
+            msg["id"],
+            {
+                "device_id": result.device_id,
+                "status": result.status,
+                "persistence_mode": result.persistence_mode,
+                "limitations": list(result.limitations),
+                "entities": [
+                    {
+                        "entity_id": item.virtual_entity_id,
+                        "status": item.status,
+                        "reason": item.reason,
+                        "range_start": (
+                            item.range_start.isoformat() if item.range_start else None
+                        ),
+                        "range_end": item.range_end.isoformat()
+                        if item.range_end
+                        else None,
+                        "resolutions": list(item.resolutions),
+                        "hourly_slots_upserted": item.hourly_slots_upserted,
+                    }
+                    for item in result.entities
+                ],
+            },
+        )
+
+    websocket_api.async_register_command(hass, handle_history_sync)
