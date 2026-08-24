@@ -15,6 +15,7 @@ PLATFORMS: list[str] = ["sensor"]
 AGGREGATIONS: tuple[str, ...] = (
     "avg",
     "max",
+    "median",
     "min",
     "sum",
 )

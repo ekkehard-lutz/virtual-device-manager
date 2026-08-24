@@ -236,7 +236,7 @@ def test_validate_virtual_entity_rejects_unsupported_aggregation() -> None:
             VirtualEntity(
                 id="test",
                 device_class="power",
-                aggregation="median",
+                aggregation="mode",
             )
         )
 
@@ -488,7 +488,7 @@ def test_update_virtual_entity_validates_new_values() -> None:
         update_virtual_entity(
             device=device,
             entity_id="virtual_beleuchtung_power",
-            aggregation="median",
+            aggregation="mode",
         )
 
 
@@ -584,7 +584,7 @@ def test_delete_virtual_entity_does_not_modify_original() -> None:
 
 
 def test_update_virtual_entity_keeps_device_class() -> None:
-    """Device class cannot be changed when updating an entity."""
+    """Keep the device class when an update omits it."""
     entity = VirtualEntity(
         id="virtual_beleuchtung_power",
         device_class="power",
@@ -604,4 +604,22 @@ def test_update_virtual_entity_keeps_device_class() -> None:
     )
 
     assert updated.entities[0].device_class == "power"
-    assert updated.entities[0].aggregation == "avg"
+
+
+def test_update_virtual_entity_changes_device_class_without_changing_id() -> None:
+    device = VirtualDevice(
+        id="building",
+        label_ref="building",
+        entities=[VirtualEntity("building_power", "power", "avg")],
+    )
+
+    updated = update_virtual_entity(
+        device,
+        "building_power",
+        device_class="temperature",
+        aggregation="median",
+    )
+
+    assert updated.entities[0] == VirtualEntity(
+        "building_power", "temperature", "median"
+    )

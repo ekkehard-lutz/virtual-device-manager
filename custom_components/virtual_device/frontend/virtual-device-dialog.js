@@ -591,12 +591,20 @@ export async function openEditVirtualEntityDialog(
 
         <label>Device Class</label>
 
-        <input
-          class="entity-device-class-input"
-          type="text"
-          value="${escapeAttribute(entity.device_class)}"
-          disabled
-        />
+        <select class="entity-device-class-select">
+          ${entityConfig.device_classes
+            .map(
+              (deviceClass) => `
+                <option
+                  value="${escapeAttribute(deviceClass)}"
+                  ${deviceClass === entity.device_class ? "selected" : ""}
+                >
+                  ${escapeHtml(deviceClass)}
+                </option>
+              `,
+            )
+            .join("")}
+        </select>
 
         <label>Aggregation</label>
 
@@ -654,6 +662,11 @@ export async function openEditVirtualEntityDialog(
       ".entity-aggregation-select",
     );
 
+  const deviceClassSelect =
+    dialog.querySelector(
+      ".entity-device-class-select",
+    );
+
   cancelButton.addEventListener(
     "click",
     () => dialog.remove(),
@@ -677,6 +690,9 @@ export async function openEditVirtualEntityDialog(
       const aggregation =
         aggregationSelect.value;
 
+      const deviceClass =
+        deviceClassSelect.value;
+
       saveButton.disabled = true;
       saveButton.textContent =
         "Speichern …";
@@ -688,6 +704,7 @@ export async function openEditVirtualEntityDialog(
             {
               device_id: device.id,
               entity_id: entity.id,
+              device_class: deviceClass,
               aggregation,
               name: name || undefined,
             },

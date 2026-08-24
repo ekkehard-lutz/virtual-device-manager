@@ -3,6 +3,8 @@
 from datetime import UTC, datetime, timedelta
 from unittest.mock import MagicMock, patch
 
+import pytest
+
 from custom_components.virtual_device.history.models import StatisticsSlot
 from custom_components.virtual_device.history.persistence import (
     HistoryPersistenceAdapter,
@@ -66,6 +68,38 @@ def test_empty_hourly_result_does_not_import() -> None:
 
     assert count == 0
     import_statistics.assert_not_called()
+
+
+@pytest.mark.parametrize(
+    ("device_class", "unit", "unit_class"),
+    [
+        ("temperature", "°C", "temperature"),
+        ("voltage", "V", "voltage"),
+        ("current", "A", "electric_current"),
+    ],
+)
+def test_new_measurement_hourly_metadata(device_class, unit, unit_class) -> None:
+    slot = StatisticsSlot(
+        f"sensor.virtual_{device_class}",
+        BASE,
+        unit,
+        mean=10,
+        minimum=9,
+        maximum=11,
+    )
+
+    with patch(
+        "custom_components.virtual_device.history.persistence.async_import_statistics"
+    ) as import_statistics:
+        HistoryPersistenceAdapter(MagicMock()).async_upsert_hourly(
+            slot.entity_id, device_class, (slot,)
+        )
+
+    metadata = import_statistics.call_args.args[1]
+    assert metadata["unit_of_measurement"] == unit
+    assert metadata["unit_class"] == unit_class
+    assert metadata["mean_type"] is StatisticMeanType.ARITHMETIC
+    assert metadata["has_sum"] is False
 
 
 def test_resync_only_upserts_new_calculation_and_never_clears() -> None:

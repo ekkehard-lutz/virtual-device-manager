@@ -83,6 +83,30 @@ def test_fahrenheit_to_celsius() -> None:
     assert result == pytest.approx(20.0)
 
 
+@pytest.mark.parametrize(
+    ("value", "unit"),
+    [(20, "°C"), (68, "°F"), (293.15, "K")],
+)
+def test_temperature_units_normalize_to_celsius(value, unit) -> None:
+    assert convert_value(value, "temperature", unit, "°C") == pytest.approx(20)
+
+
+@pytest.mark.parametrize(
+    ("value", "unit", "expected"),
+    [(1000, "mV", 1), (1, "V", 1), (0.001, "kV", 1)],
+)
+def test_voltage_units_normalize_to_volts(value, unit, expected) -> None:
+    assert convert_value(value, "voltage", unit, "V") == pytest.approx(expected)
+
+
+@pytest.mark.parametrize(
+    ("value", "unit", "expected"),
+    [(1000, "mA", 1), (1, "A", 1), (0.001, "kA", 1)],
+)
+def test_current_units_normalize_to_amperes(value, unit, expected) -> None:
+    assert convert_value(value, "current", unit, "A") == pytest.approx(expected)
+
+
 def test_missing_device_class_converter() -> None:
     """Test missing Home Assistant unit converter."""
     with pytest.raises(ValueError, match="No unit converter"):

@@ -5,7 +5,13 @@ from __future__ import annotations
 from dataclasses import dataclass
 
 from homeassistant.components.sensor import SensorDeviceClass, SensorStateClass
-from homeassistant.const import UnitOfEnergy, UnitOfPower
+from homeassistant.const import (
+    UnitOfElectricCurrent,
+    UnitOfElectricPotential,
+    UnitOfEnergy,
+    UnitOfPower,
+    UnitOfTemperature,
+)
 
 
 @dataclass(frozen=True, slots=True)
@@ -23,6 +29,18 @@ DEVICE_CLASS_METADATA: dict[str, DeviceClassMetadata] = {
     ),
     SensorDeviceClass.POWER: DeviceClassMetadata(
         native_unit=UnitOfPower.WATT,
+        state_class=SensorStateClass.MEASUREMENT,
+    ),
+    SensorDeviceClass.TEMPERATURE: DeviceClassMetadata(
+        native_unit=UnitOfTemperature.CELSIUS,
+        state_class=SensorStateClass.MEASUREMENT,
+    ),
+    SensorDeviceClass.VOLTAGE: DeviceClassMetadata(
+        native_unit=UnitOfElectricPotential.VOLT,
+        state_class=SensorStateClass.MEASUREMENT,
+    ),
+    SensorDeviceClass.CURRENT: DeviceClassMetadata(
+        native_unit=UnitOfElectricCurrent.AMPERE,
         state_class=SensorStateClass.MEASUREMENT,
     ),
 }

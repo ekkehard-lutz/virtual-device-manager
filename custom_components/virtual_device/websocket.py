@@ -292,6 +292,9 @@ async def async_register_websocket_commands(
             "name": msg.get("name"),
         }
 
+        if "device_class" in msg:
+            kwargs["device_class"] = msg["device_class"]
+
         if lifecycle_manager is not None:
             kwargs["sensor_manager"] = sensor_manager
             kwargs["lifecycle_manager"] = lifecycle_manager

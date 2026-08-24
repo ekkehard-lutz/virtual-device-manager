@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
+from statistics import median
 
 from .device_class_metadata import get_device_class_metadata
 from .unit_converter import convert_value
@@ -49,5 +50,8 @@ def aggregate_values(
 
     if aggregation == "max":
         return max(converted_values)
+
+    if aggregation == "median":
+        return median(converted_values)
 
     raise ValueError(f"Unsupported aggregation: {aggregation}")

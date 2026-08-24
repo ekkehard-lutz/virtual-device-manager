@@ -142,6 +142,7 @@ async def async_update_virtual_entity(
     source_manager: SourceManager,
     device_id: str,
     entity_id: str,
+    device_class: str | None = None,
     aggregation: str | None = None,
     name: str | None = None,
     sensor_manager: VirtualSensorManager | None = None,
@@ -156,6 +157,7 @@ async def async_update_virtual_entity(
     updated_device = update_virtual_entity(
         device=device,
         entity_id=entity_id,
+        device_class=device_class,
         aggregation=aggregation,
     )
 

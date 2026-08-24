@@ -85,6 +85,7 @@ export async function updateVirtualEntity(
     type: "virtual_device/update_virtual_entity",
     device_id: data.device_id,
     entity_id: data.entity_id,
+    device_class: data.device_class,
     aggregation: data.aggregation,
     name: data.name,
   });

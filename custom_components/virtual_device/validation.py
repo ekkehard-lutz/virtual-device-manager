@@ -1,5 +1,6 @@
 """Validation helpers for the Virtual Device Manager integration."""
 
+from homeassistant.components.sensor import SensorDeviceClass
 from homeassistant.components.sensor.const import (
     DEVICE_CLASS_UNITS,
     UNIT_CONVERTERS,
@@ -7,6 +8,7 @@ from homeassistant.components.sensor.const import (
 
 from .const import AGGREGATIONS, SUPPORTED_DEVICE_CLASSES
 from .models import VirtualDevice, VirtualEntity
+from .unit_converter import KILOAMPERE, KILOVOLT
 
 
 class ValidationError(ValueError):
@@ -40,7 +42,11 @@ def is_valid_unit_for_device_class(
     if units is None:
         return False
 
-    return unit in units
+    return (
+        unit in units
+        or (device_class == SensorDeviceClass.CURRENT and unit == KILOAMPERE)
+        or (device_class == SensorDeviceClass.VOLTAGE and unit == KILOVOLT)
+    )
 
 
 def can_convert_unit(
@@ -51,6 +57,20 @@ def can_convert_unit(
     """Return whether two units can be converted for a device class."""
     if from_unit == to_unit:
         return is_valid_unit_for_device_class(device_class, from_unit)
+
+    if device_class == SensorDeviceClass.CURRENT and KILOAMPERE in (
+        from_unit,
+        to_unit,
+    ):
+        other_unit = to_unit if from_unit == KILOAMPERE else from_unit
+        return other_unit in DEVICE_CLASS_UNITS[SensorDeviceClass.CURRENT]
+
+    if device_class == SensorDeviceClass.VOLTAGE and KILOVOLT in (
+        from_unit,
+        to_unit,
+    ):
+        other_unit = to_unit if from_unit == KILOVOLT else from_unit
+        return other_unit in DEVICE_CLASS_UNITS[SensorDeviceClass.VOLTAGE]
 
     converter = UNIT_CONVERTERS.get(device_class)
 

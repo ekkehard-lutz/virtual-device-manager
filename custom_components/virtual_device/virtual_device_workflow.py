@@ -81,6 +81,7 @@ def update_virtual_entity(
     device: VirtualDevice,
     entity_id: str,
     *,
+    device_class: str | None = None,
     aggregation: str | None = None,
 ) -> VirtualDevice:
     """Update an existing virtual entity."""
@@ -95,10 +96,13 @@ def update_virtual_entity(
     new_aggregation = (
         aggregation if aggregation is not None else existing_entity.aggregation
     )
+    new_device_class = (
+        device_class if device_class is not None else existing_entity.device_class
+    )
 
     updated_entity = VirtualEntity(
         id=existing_entity.id,
-        device_class=existing_entity.device_class,
+        device_class=new_device_class,
         aggregation=new_aggregation,
     )
 

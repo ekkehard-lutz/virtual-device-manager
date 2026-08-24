@@ -78,6 +78,46 @@ def test_sensor_energy_state_class() -> None:
     assert sensor.state_class is SensorStateClass.TOTAL_INCREASING
 
 
+@pytest.mark.parametrize(
+    ("device_class", "unit"),
+    [("temperature", "°C"), ("voltage", "V"), ("current", "A")],
+)
+def test_new_measurement_sensor_metadata(device_class, unit) -> None:
+    device = VirtualDevice(id="building", label_ref="building")
+    entity = VirtualEntity(
+        id=f"building_{device_class}",
+        device_class=device_class,
+        aggregation="median",
+    )
+
+    sensor = VirtualDeviceSensor(device, entity)
+
+    assert sensor.device_class == device_class
+    assert sensor.native_unit_of_measurement == unit
+    assert sensor.state_class is SensorStateClass.MEASUREMENT
+
+
+@pytest.mark.parametrize(
+    ("device_class", "unit"),
+    [("temperature", "°C"), ("voltage", "V"), ("current", "A")],
+)
+def test_runtime_median_for_new_device_classes(device_class, unit) -> None:
+    device = VirtualDevice(id="building", label_ref="building")
+    entity = VirtualEntity(f"building_{device_class}", device_class, "median")
+    sensor = VirtualDeviceSensor(device, entity)
+
+    sensor.update_value(
+        [
+            SourceValue("sensor.a", 1, unit),
+            SourceValue("sensor.b", 100, unit),
+            SourceValue("sensor.c", 2, unit),
+        ],
+        write_state=False,
+    )
+
+    assert sensor.native_value == 2
+
+
 def test_sensor_initial_value() -> None:
     """Test the initial sensor value."""
     sensor = _create_sensor()

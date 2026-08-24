@@ -59,6 +59,29 @@ def test_source_appears_later_without_zero() -> None:
     assert [point.value for point in points] == [100, 150]
 
 
+def test_raw_median_uses_currently_valid_sources() -> None:
+    events = (
+        event("sensor.a", 0, 20, "°C"),
+        event("sensor.b", 0, 22, "°C"),
+        event("sensor.c", 0, 30, "°C"),
+        event("sensor.c", 5, None, None),
+        event("sensor.a", 10, 21, "°C"),
+        event("sensor.c", 15, 23, "°C"),
+    )
+
+    points, _ = HistoricalAggregator().aggregate_raw(
+        events, "temperature", "median"
+    )
+
+    assert [point.timestamp for point in points] == [
+        BASE,
+        BASE + timedelta(minutes=5),
+        BASE + timedelta(minutes=10),
+        BASE + timedelta(minutes=15),
+    ]
+    assert [point.value for point in points] == [22, 21, 21.5, 22]
+
+
 @pytest.mark.parametrize("invalid_value", [None])
 def test_invalid_period_removes_source(invalid_value) -> None:
     points, _ = HistoricalAggregator().aggregate_raw(
@@ -180,3 +203,39 @@ def test_energy_statistics_convert_kwh_to_wh() -> None:
     )
 
     assert result[0].sum == 1500
+
+
+def test_measurement_statistics_use_field_wise_median() -> None:
+    slots = (
+        StatisticsSlot("sensor.a", BASE, "°C", mean=20, minimum=18, maximum=22),
+        StatisticsSlot("sensor.b", BASE, "°C", mean=22, minimum=21, maximum=25),
+        StatisticsSlot("sensor.c", BASE, "°C", mean=24, minimum=19, maximum=27),
+    )
+
+    result = HistoricalAggregator().aggregate_statistics(
+        slots,
+        "sensor.indoor_temperature",
+        "temperature",
+        "median",
+        BASE + timedelta(minutes=5),
+    )
+
+    assert (result[0].mean, result[0].minimum, result[0].maximum) == (22, 19, 25)
+
+
+def test_statistics_median_omits_missing_fields() -> None:
+    result = HistoricalAggregator().aggregate_statistics(
+        (
+            StatisticsSlot("sensor.a", BASE, "V", mean=1, minimum=0.9),
+            StatisticsSlot("sensor.b", BASE, "V", mean=3, maximum=3.1),
+            StatisticsSlot("sensor.c", BASE, "V", mean=2),
+        ),
+        "sensor.virtual_voltage",
+        "voltage",
+        "median",
+        BASE + timedelta(hours=1),
+    )
+
+    assert result[0].mean == 2
+    assert result[0].minimum == 0.9
+    assert result[0].maximum == 3.1

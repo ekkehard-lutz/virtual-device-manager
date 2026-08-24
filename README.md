@@ -19,9 +19,22 @@ obsolete old slot absent from the new result cannot safely be removed. VDM never
 uses direct Recorder SQL, fabricated historical events, private table-specific
 imports, or destructive clear-and-reimport behavior.
 
+## Supported virtual sensors and aggregations
+
+VDM supports energy (`Wh`), power (`W`), temperature (`°C`), voltage (`V`),
+and electric current (`A`) virtual sensors. Compatible source units are
+normalized through Home Assistant's unit converters before aggregation;
+electrical SI-scaled units are supported as well.
+
+Available aggregations are sum, average (`avg`), minimum, maximum, and median.
+Median is useful for representative values that should resist an outlier. For
+example, an `Indoor Temperature` virtual entity using `device_class:
+temperature` and `aggregation: median` is much less affected by one sensor
+temporarily heated by direct sunlight.
+
 ## Status
 
-**Version: 0.1.0**
+**Version: 0.3.0-beta.2**
 
 The first release of the Virtual Device Manager.
 

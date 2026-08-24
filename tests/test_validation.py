@@ -87,7 +87,7 @@ def test_valid_aggregations() -> None:
 
 def test_invalid_aggregation() -> None:
     """Test unsupported aggregation methods."""
-    assert not is_valid_aggregation("median")
+    assert not is_valid_aggregation("mode")
     assert not is_valid_aggregation("SUM")
     assert not is_valid_aggregation("")
 
@@ -123,7 +123,7 @@ def test_invalid_virtual_entity_aggregation() -> None:
     entity = VirtualEntity(
         id="test",
         device_class="power",
-        aggregation="median",
+        aggregation="mode",
     )
 
     with pytest.raises(ValidationError, match="Unsupported aggregation"):
