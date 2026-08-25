@@ -2,7 +2,7 @@
 
 from homeassistant.components import websocket_api
 from homeassistant.core import HomeAssistant
-from homeassistant.helpers import device_registry, entity_registry
+from homeassistant.helpers import device_registry, entity_registry, label_registry
 
 from .const import AGGREGATIONS, SUPPORTED_DEVICE_CLASSES
 from .history.manager import HistorySyncBusyError, HistorySyncManager
@@ -47,6 +47,7 @@ def _serialize_virtual_device(
     device,
     lifecycle_manager: VirtualDeviceLifecycleManager | None = None,
     source_manager: SourceManager | None = None,
+    labels=None,
 ) -> dict:
     """Serialize one virtual device."""
     result = {
@@ -63,6 +64,9 @@ def _serialize_virtual_device(
     else:
         result["name"] = None
 
+    if labels is not None:
+        result["label_missing"] = labels.async_get_label(device.label_ref) is None
+
     return result
 
 
@@ -70,10 +74,11 @@ def _serialize_virtual_devices(
     storage: VirtualDeviceStorage,
     lifecycle_manager: VirtualDeviceLifecycleManager | None = None,
     source_manager: SourceManager | None = None,
+    labels=None,
 ) -> list[dict]:
     """Serialize virtual devices for the WebSocket API."""
     return [
-        _serialize_virtual_device(device, lifecycle_manager, source_manager)
+        _serialize_virtual_device(device, lifecycle_manager, source_manager, labels)
         for device in storage.get_virtual_devices()
     ]
 
@@ -152,6 +157,7 @@ async def async_register_websocket_commands(
                     storage,
                     lifecycle_manager,
                     source_manager,
+                    label_registry.async_get(hass),
                 ),
             },
         )

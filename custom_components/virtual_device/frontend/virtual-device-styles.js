@@ -58,8 +58,17 @@ export function addStyles(component) {
     }
 
     .device-name {
+      display: flex;
+      align-items: center;
+      gap: 4px;
       font-size: 18px;
       font-weight: 500;
+    }
+
+    .label-missing-warning {
+      flex-shrink: 0;
+      --mdc-icon-size: 20px;
+      color: var(--error-color, #db4437);
     }
 
     .device-details {

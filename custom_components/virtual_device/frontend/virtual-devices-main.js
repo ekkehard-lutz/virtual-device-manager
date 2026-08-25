@@ -304,7 +304,13 @@ class VirtualDeviceManager
             </button>
 
             <div class="device-heading">
-              <div class="device-name">${this._escape(name)}</div>
+              <div class="device-name">
+                <span>${this._escape(name)}</span>
+                ${device.label_missing ? `
+                  <ha-icon class="label-missing-warning" icon="mdi:alert"
+                    title="Label gelöscht" aria-label="Label gelöscht"></ha-icon>
+                ` : ""}
+              </div>
               <div class="device-entity-count">${this._entityCount(entities.length, "virtual_entity")}</div>
             </div>
 

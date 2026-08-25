@@ -187,6 +187,61 @@ def test_serialize_virtual_devices_includes_runtime_source_counts() -> None:
     assert result[0]["entities"][1]["source_count"] == 0
 
 
+@pytest.mark.parametrize(
+    ("registered_labels", "expected_missing"),
+    [
+        ({"label-original": MagicMock(name="Original")}, False),
+        ({}, True),
+    ],
+)
+def test_serialize_virtual_devices_derives_label_missing(
+    registered_labels: dict, expected_missing: bool
+) -> None:
+    """Report whether the exact referenced label ID still exists."""
+    entity = VirtualEntity("virtual-lighting_power", "power", "sum")
+    device = VirtualDevice(
+        id="virtual-lighting",
+        label_ref="label-original",
+        entities=[entity],
+    )
+    storage = MagicMock()
+    storage.get_virtual_devices.return_value = [device]
+    labels = MagicMock()
+    labels.async_get_label.side_effect = registered_labels.get
+
+    result = _serialize_virtual_devices(storage, labels=labels)
+
+    assert result[0]["label_missing"] is expected_missing
+    assert result[0]["label_ref"] == "label-original"
+    assert device.label_ref == "label-original"
+    assert device.entities == [entity]
+    assert device.entities[0] is entity
+
+
+def test_serialize_virtual_devices_does_not_relink_same_named_label() -> None:
+    """A replacement label with the same name does not satisfy the old ID."""
+    entity = VirtualEntity("virtual-test_power", "power", "sum")
+    device = VirtualDevice(
+        id="virtual-test",
+        label_ref="deleted-label-id",
+        entities=[entity],
+    )
+    storage = MagicMock()
+    storage.get_virtual_devices.return_value = [device]
+    labels = MagicMock()
+    replacement = MagicMock()
+    replacement.label_id = "new-label-id"
+    replacement.name = "Test77"
+    labels.labels = {replacement.label_id: replacement}
+    labels.async_get_label.side_effect = labels.labels.get
+
+    result = _serialize_virtual_devices(storage, labels=labels)
+
+    assert result[0]["label_missing"] is True
+    assert result[0]["label_ref"] == "deleted-label-id"
+    assert device.entities == [entity]
+
+
 async def _get_source_handler(storage, source_manager):
     """Register and return the source-details handler."""
     with patch(
