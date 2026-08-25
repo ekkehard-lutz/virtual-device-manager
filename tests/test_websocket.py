@@ -3,6 +3,7 @@
 from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
+from homeassistant.exceptions import Unauthorized
 
 from custom_components.virtual_device.const import (
     AGGREGATIONS,
@@ -91,6 +92,82 @@ async def test_history_sync_command_requires_explicit_manager_registration() -> 
 
 
 @pytest.mark.asyncio
+async def test_all_vdm_websocket_commands_reject_non_admin_users() -> None:
+    """Require administrator access for every registered VDM command."""
+    with patch(
+        "custom_components.virtual_device.websocket.websocket_api.async_register_command"
+    ) as register_mock:
+        await async_register_websocket_commands(
+            MagicMock(),
+            MagicMock(),
+            MagicMock(),
+            MagicMock(),
+            history_sync_manager=MagicMock(),
+        )
+
+    handlers = {
+        handler._ws_command: handler
+        for handler in (call.args[1] for call in register_mock.call_args_list)
+        if handler._ws_command.startswith("virtual_device/")
+    }
+    assert set(handlers) == {
+        "virtual_device/get_translations",
+        "virtual_device/get_entity_config",
+        "virtual_device/get_virtual_devices",
+        "virtual_device/get_source_entities",
+        "virtual_device/delete_virtual_device",
+        "virtual_device/update_virtual_device",
+        "virtual_device/add_virtual_entity",
+        "virtual_device/update_virtual_entity",
+        "virtual_device/delete_virtual_entity",
+        "virtual_device/history_sync",
+    }
+
+    connection = MagicMock()
+    connection.user.is_admin = False
+    for handler in handlers.values():
+        with pytest.raises(Unauthorized):
+            handler(MagicMock(), connection, {"id": 1})
+
+
+@pytest.mark.asyncio
+async def test_admin_can_call_read_modify_and_history_commands() -> None:
+    """Allow administrators through the standard Home Assistant guard."""
+    hass = MagicMock()
+
+    def close_scheduled_coroutine(coroutine, *args, **kwargs) -> None:
+        coroutine.close()
+
+    hass.async_create_background_task.side_effect = close_scheduled_coroutine
+    with patch(
+        "custom_components.virtual_device.websocket.websocket_api.async_register_command"
+    ) as register_mock:
+        await async_register_websocket_commands(
+            hass,
+            MagicMock(),
+            MagicMock(),
+            MagicMock(),
+            history_sync_manager=MagicMock(),
+        )
+
+    handlers = {
+        handler._ws_command: handler
+        for handler in (call.args[1] for call in register_mock.call_args_list)
+    }
+    connection = MagicMock()
+    connection.user.is_admin = True
+
+    for command in (
+        "virtual_device/get_virtual_devices",
+        "virtual_device/delete_virtual_device",
+        "virtual_device/history_sync",
+    ):
+        handlers[command](hass, connection, {"id": 1})
+
+    assert hass.async_create_background_task.call_count == 3
+
+
+@pytest.mark.asyncio
 async def test_get_entity_config_websocket_returns_configuration() -> None:
     """Return supported device classes and aggregations."""
     hass = MagicMock()
@@ -115,7 +192,7 @@ async def test_get_entity_config_websocket_returns_configuration() -> None:
         if handler.__name__ == "handle_get_entity_config"
     )
 
-    await handler.__wrapped__(
+    await handler.__wrapped__.__wrapped__(
         hass=hass,
         connection=connection,
         msg={"id": 42},
@@ -305,7 +382,7 @@ async def test_get_source_entities_resolves_registry_names() -> None:
             return_value=device_reg,
         ),
     ):
-        await handler.__wrapped__(
+        await handler.__wrapped__.__wrapped__(
             hass=hass,
             connection=connection,
             msg={
@@ -344,7 +421,7 @@ async def test_get_source_entities_rejects_unknown_targets(unknown: str) -> None
     handler = await _get_source_handler(storage, MagicMock())
     connection = MagicMock()
 
-    await handler.__wrapped__(
+    await handler.__wrapped__.__wrapped__(
         hass=MagicMock(),
         connection=connection,
         msg={
@@ -412,7 +489,7 @@ async def test_delete_virtual_device_websocket_deletes_device() -> None:
         "custom_components.virtual_device.websocket.async_delete_virtual_device",
         new_callable=AsyncMock,
     ) as delete_mock:
-        await handler.__wrapped__(
+        await handler.__wrapped__.__wrapped__(
             hass=hass,
             connection=connection,
             msg={
@@ -494,7 +571,7 @@ async def test_update_virtual_device_websocket_updates_device() -> None:
         new_callable=AsyncMock,
         return_value=updated_device,
     ) as update_mock:
-        await handler.__wrapped__(
+        await handler.__wrapped__.__wrapped__(
             hass=hass,
             connection=connection,
             msg={
@@ -594,7 +671,7 @@ async def test_add_virtual_entity_websocket_adds_entity() -> None:
         new_callable=AsyncMock,
         return_value=updated_device,
     ) as add_mock:
-        await handler.__wrapped__(
+        await handler.__wrapped__.__wrapped__(
             hass=hass,
             connection=connection,
             msg={
@@ -705,7 +782,7 @@ async def test_update_virtual_entity_websocket_updates_entity() -> None:
         new_callable=AsyncMock,
         return_value=updated_device,
     ) as update_mock:
-        await handler.__wrapped__(
+        await handler.__wrapped__.__wrapped__(
             hass=hass,
             connection=connection,
             msg={
@@ -808,7 +885,7 @@ async def test_delete_virtual_entity_websocket_deletes_entity() -> None:
         new_callable=AsyncMock,
         return_value=updated_device,
     ) as delete_mock:
-        await handler.__wrapped__(
+        await handler.__wrapped__.__wrapped__(
             hass=hass,
             connection=connection,
             msg={

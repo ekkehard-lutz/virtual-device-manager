@@ -94,6 +94,7 @@ async def async_register_websocket_commands(
 ) -> None:
     """Register Virtual Device Manager WebSocket commands."""
 
+    @websocket_api.require_admin
     @websocket_api.websocket_command(
         {"type": "virtual_device/get_translations", "language": str}
     )
@@ -111,6 +112,7 @@ async def async_register_websocket_commands(
 
     websocket_api.async_register_command(hass, handle_get_translations)
 
+    @websocket_api.require_admin
     @websocket_api.websocket_command(
         {
             "type": "virtual_device/get_entity_config",
@@ -138,6 +140,7 @@ async def async_register_websocket_commands(
         handle_get_entity_config,
     )
 
+    @websocket_api.require_admin
     @websocket_api.websocket_command(
         {
             "type": "virtual_device/get_virtual_devices",
@@ -167,6 +170,7 @@ async def async_register_websocket_commands(
         handle_get_virtual_devices,
     )
 
+    @websocket_api.require_admin
     @websocket_api.websocket_command(
         {
             "type": "virtual_device/get_source_entities",
@@ -237,6 +241,7 @@ async def async_register_websocket_commands(
 
     websocket_api.async_register_command(hass, handle_get_source_entities)
 
+    @websocket_api.require_admin
     @websocket_api.websocket_command(
         {
             "type": "virtual_device/delete_virtual_device",
@@ -272,6 +277,7 @@ async def async_register_websocket_commands(
         handle_delete_virtual_device,
     )
 
+    @websocket_api.require_admin
     @websocket_api.websocket_command(
         {
             "type": "virtual_device/update_virtual_device",
@@ -318,6 +324,7 @@ async def async_register_websocket_commands(
         handle_update_virtual_device,
     )
 
+    @websocket_api.require_admin
     @websocket_api.websocket_command(
         {
             "type": "virtual_device/add_virtual_entity",
@@ -366,6 +373,7 @@ async def async_register_websocket_commands(
         handle_add_virtual_entity,
     )
 
+    @websocket_api.require_admin
     @websocket_api.websocket_command(
         {
             "type": "virtual_device/update_virtual_entity",
@@ -417,6 +425,7 @@ async def async_register_websocket_commands(
         handle_update_virtual_entity,
     )
 
+    @websocket_api.require_admin
     @websocket_api.websocket_command(
         {
             "type": "virtual_device/delete_virtual_entity",
