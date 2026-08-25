@@ -108,6 +108,15 @@ export async function deleteVirtualEntity(
 }
 
 
+export async function loadSourceEntities(hass, deviceId, entityId) {
+  return await hass.callWS({
+    type: "virtual_device/get_source_entities",
+    device_id: deviceId,
+    entity_id: entityId,
+  });
+}
+
+
 export async function synchronizeHistory(
   hass,
   deviceId,

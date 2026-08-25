@@ -45,7 +45,10 @@
             "saving": "Saving\u2026",
             "cancel": "Cancel",
             "sync": "Synchronize history",
-            "syncing": "Synchronization running\u2026"
+            "syncing": "Synchronization running\u2026",
+            "close": "Close",
+            "expand": "Expand virtual device",
+            "collapse": "Collapse virtual device"
         },
         "fields": {
             "name": "Name",
@@ -53,11 +56,15 @@
             "optional": "Optional",
             "device_class": "Device class",
             "aggregation": "Aggregation",
-            "entity_id": "Entity ID"
+            "entity_id": "Entity ID",
+            "entity": "Entity",
+            "device": "Device",
+            "no_device": "\u2014"
         },
         "empty": {
             "devices": "No virtual devices available.",
-            "entities": "No virtual entities available."
+            "entities": "No virtual entities available.",
+            "assigned_entities": "No entities assigned"
         },
         "loading": "Loading\u2026",
         "dialogs": {
@@ -71,7 +78,8 @@
             "confirm_name_conflict": "Use this name anyway.",
             "sync_title": "Synchronize history",
             "sync_description": "The long-term statistics of all virtual entities in this virtual device will be recalculated from the physical entities currently assigned to them.",
-            "sync_limitations": "Home Assistant 2026.8 supports hourly long-term statistics only. Raw history and 5-minute statistics are not written back, and obsolete hours that can no longer be calculated cannot be removed safely."
+            "sync_limitations": "Home Assistant 2026.8 supports hourly long-term statistics only. Raw history and 5-minute statistics are not written back, and obsolete hours that can no longer be calculated cannot be removed safely.",
+            "assigned_entities": "Assigned entities"
         },
         "messages": {
             "load_failed": "Failed to load virtual devices.",
@@ -87,7 +95,14 @@
             "sync_result": "History synchronization: {status}",
             "sync_limitations": "Safe hourly upserts are used; obsolete historical hours are not deleted.",
             "hours_updated": "{count} hourly slots updated",
-            "missing_translation": "Translation unavailable"
+            "missing_translation": "Translation unavailable",
+            "load_sources_failed": "The assigned entities could not be loaded."
+        },
+        "counts": {
+            "virtual_entity_count_one": "1 virtual entity",
+            "virtual_entity_count_other": "{count} virtual entities",
+            "physical_entity_count_one": "1 entity",
+            "physical_entity_count_other": "{count} entities"
         },
         "status": {
             "idle": "Idle",

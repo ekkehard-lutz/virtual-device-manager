@@ -45,7 +45,10 @@
             "saving": "Wird gespeichert\u2026",
             "cancel": "Abbrechen",
             "sync": "Verlauf synchronisieren",
-            "syncing": "Synchronisierung l\u00e4uft\u2026"
+            "syncing": "Synchronisierung l\u00e4uft\u2026",
+            "close": "Schlie\u00dfen",
+            "expand": "Virtuelles Ger\u00e4t aufklappen",
+            "collapse": "Virtuelles Ger\u00e4t zuklappen"
         },
         "fields": {
             "name": "Name",
@@ -53,11 +56,15 @@
             "optional": "Optional",
             "device_class": "Ger\u00e4teklasse",
             "aggregation": "Aggregation",
-            "entity_id": "Entit\u00e4ts-ID"
+            "entity_id": "Entit\u00e4ts-ID",
+            "entity": "Entit\u00e4t",
+            "device": "Ger\u00e4t",
+            "no_device": "\u2014"
         },
         "empty": {
             "devices": "Keine virtuellen Ger\u00e4te vorhanden.",
-            "entities": "Keine virtuellen Entit\u00e4ten vorhanden."
+            "entities": "Keine virtuellen Entit\u00e4ten vorhanden.",
+            "assigned_entities": "Keine Entit\u00e4ten zugewiesen"
         },
         "loading": "Wird geladen\u2026",
         "dialogs": {
@@ -71,7 +78,8 @@
             "confirm_name_conflict": "Diesen Namen trotzdem verwenden.",
             "sync_title": "Verlauf synchronisieren",
             "sync_description": "Die Langzeitstatistik aller virtuellen Entit\u00e4ten in diesem virtuellen Ger\u00e4t wird aus den aktuell zugewiesenen physischen Entit\u00e4ten neu berechnet.",
-            "sync_limitations": "Home Assistant 2026.8 unterst\u00fctzt nur st\u00fcndliche Langzeitstatistiken. Rohverlauf und 5-Minuten-Statistiken werden nicht zur\u00fcckgeschrieben; nicht mehr berechenbare alte Stunden k\u00f6nnen nicht sicher entfernt werden."
+            "sync_limitations": "Home Assistant 2026.8 unterst\u00fctzt nur st\u00fcndliche Langzeitstatistiken. Rohverlauf und 5-Minuten-Statistiken werden nicht zur\u00fcckgeschrieben; nicht mehr berechenbare alte Stunden k\u00f6nnen nicht sicher entfernt werden.",
+            "assigned_entities": "Zugewiesene Entit\u00e4ten"
         },
         "messages": {
             "load_failed": "Fehler beim Laden der virtuellen Ger\u00e4te.",
@@ -87,7 +95,14 @@
             "sync_result": "Verlaufssynchronisierung: {status}",
             "sync_limitations": "Sichere st\u00fcndliche Upserts werden verwendet; obsolete alte Stunden werden nicht gel\u00f6scht.",
             "hours_updated": "{count} st\u00fcndliche Werte aktualisiert",
-            "missing_translation": "\u00dcbersetzung nicht verf\u00fcgbar"
+            "missing_translation": "\u00dcbersetzung nicht verf\u00fcgbar",
+            "load_sources_failed": "Die zugewiesenen Entit\u00e4ten konnten nicht geladen werden."
+        },
+        "counts": {
+            "virtual_entity_count_one": "1 virtuelle Entit\u00e4t",
+            "virtual_entity_count_other": "{count} virtuelle Entit\u00e4ten",
+            "physical_entity_count_one": "1 Entit\u00e4t",
+            "physical_entity_count_other": "{count} Entit\u00e4ten"
         },
         "status": {
             "idle": "Inaktiv",

@@ -15,6 +15,7 @@ import {
   openEditVirtualEntityDialog,
   confirmDeleteVirtualEntity,
   openHistorySyncDialog,
+  openSourceEntitiesDialog,
 } from "./virtual-device-dialog.js";
 
 import {
@@ -122,6 +123,35 @@ class VirtualDeviceManager
         "click",
         () => this._openCreateDialog(),
       );
+
+    this
+      .querySelectorAll(".device-header")
+      .forEach((header) => {
+        const toggle = () => {
+          const body = header.closest(".device-main")?.querySelector(".device-body");
+          const control = header.querySelector(".collapse-button");
+          const expanded = control?.getAttribute("aria-expanded") === "true";
+          control?.setAttribute("aria-expanded", String(!expanded));
+          control?.setAttribute("aria-label", this._t(expanded ? "actions.expand" : "actions.collapse"));
+          header.querySelector(".device-chevron")?.setAttribute(
+            "icon", expanded ? "mdi:chevron-right" : "mdi:chevron-down",
+          );
+          body?.classList.toggle("hidden", expanded);
+        };
+        header.addEventListener("click", toggle);
+      });
+
+    this.querySelectorAll(".device-actions button").forEach((button) => {
+      button.addEventListener("click", (event) => event.stopPropagation());
+    });
+
+    this.querySelectorAll(".source-count-button").forEach((button) => {
+      button.addEventListener("click", () => {
+        const device = this._devices.find((item) => item.id === button.dataset.deviceId);
+        const entity = device?.entities?.find((item) => item.id === button.dataset.entityId);
+        if (device && entity) openSourceEntitiesDialog(this, device, entity);
+      });
+    });
 
     this
       .querySelectorAll(".history-sync-button")
@@ -268,8 +298,14 @@ class VirtualDeviceManager
 
           <div class="device-header">
 
-            <div class="device-name">
-              ${this._escape(name)}
+            <button class="collapse-button" aria-expanded="false"
+              aria-label="${this._escapeAttribute(this._t("actions.expand"))}">
+              <ha-icon class="device-chevron" icon="mdi:chevron-right"></ha-icon>
+            </button>
+
+            <div class="device-heading">
+              <div class="device-name">${this._escape(name)}</div>
+              <div class="device-entity-count">${this._entityCount(entities.length, "virtual_entity")}</div>
             </div>
 
             <div class="device-actions">
@@ -316,6 +352,8 @@ class VirtualDeviceManager
             </div>
 
           </div>
+
+          <div class="device-body hidden">
 
           <div class="device-details">
 
@@ -370,6 +408,8 @@ class VirtualDeviceManager
                     )
                     .join("")
             }
+
+          </div>
 
           </div>
 
@@ -437,6 +477,12 @@ class VirtualDeviceManager
           </div>
 
           <div class="entity-details">
+
+            <button class="source-count-button"
+              data-device-id="${this._escapeAttribute(device.id)}"
+              data-entity-id="${this._escapeAttribute(entity.id)}">
+              ${this._entityCount(entity.source_count || 0, "physical_entity")}
+            </button>
 
             <span>
               ${this._escape(
@@ -813,6 +859,12 @@ class VirtualDeviceManager
         "'",
         "&#039;",
       );
+  }
+
+
+  _entityCount(count, prefix) {
+    const key = count === 1 ? `${prefix}_count_one` : `${prefix}_count_other`;
+    return this._escape(this._t(`counts.${key}`, {count}));
   }
 
 

@@ -5,8 +5,59 @@ import {
   updateVirtualEntity,
   deleteVirtualEntity,
   synchronizeHistory,
+  loadSourceEntities,
 } from "./virtual-device-api.js";
 import {resolveEntityName} from "./virtual-device-translations.js";
+
+
+export async function openSourceEntitiesDialog(component, device, entity) {
+  const t = component._t;
+  const dialog = document.createElement("div");
+  dialog.className = "dialog-backdrop";
+  dialog.innerHTML = `
+    <div class="dialog" role="dialog" aria-modal="true">
+      <div class="dialog-title">
+        ${escapeHtml(`${device.name || device.id} – ${entity.name || entity.id}`)}
+      </div>
+      <div class="dialog-content source-dialog-content">
+        <div class="source-loading">${t("loading")}</div>
+      </div>
+      <div class="dialog-actions">
+        <button class="close-button">${t("actions.close")}</button>
+      </div>
+    </div>
+  `;
+  component.appendChild(dialog);
+  const close = () => dialog.remove();
+  dialog.querySelector(".close-button").addEventListener("click", close);
+  dialog.addEventListener("click", (event) => {
+    if (event.target === dialog) close();
+  });
+
+  try {
+    const result = await loadSourceEntities(component._hass, device.id, entity.id);
+    const content = dialog.querySelector(".source-dialog-content");
+    content.innerHTML = result.sources.length === 0
+      ? `<div class="entities-empty">${t("empty.assigned_entities")}</div>`
+      : `
+        <table class="source-table">
+          <thead><tr>
+            <th>${t("fields.entity")}</th>
+            <th>${t("fields.device")}</th>
+          </tr></thead>
+          <tbody>${result.sources.map((source) => `
+            <tr>
+              <td title="${escapeAttribute(source.entity_id)}">${escapeHtml(source.entity_name)}</td>
+              <td>${escapeHtml(source.device_name || t("fields.no_device"))}</td>
+            </tr>
+          `).join("")}</tbody>
+        </table>`;
+  } catch (error) {
+    console.error("Virtual Device Manager: failed to load source entities", error);
+    showDialogError(dialog, t("messages.load_sources_failed"));
+    dialog.querySelector(".source-loading")?.remove();
+  }
+}
 
 
 export async function openHistorySyncDialog(

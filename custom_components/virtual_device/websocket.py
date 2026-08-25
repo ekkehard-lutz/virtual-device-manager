@@ -2,6 +2,7 @@
 
 from homeassistant.components import websocket_api
 from homeassistant.core import HomeAssistant
+from homeassistant.helpers import device_registry, entity_registry
 
 from .const import AGGREGATIONS, SUPPORTED_DEVICE_CLASSES
 from .history.manager import HistorySyncBusyError, HistorySyncManager
@@ -22,6 +23,7 @@ from .virtual_device_manager import (
 def _serialize_virtual_entity(
     entity,
     lifecycle_manager: VirtualDeviceLifecycleManager | None = None,
+    source_manager: SourceManager | None = None,
 ) -> dict:
     """Serialize one virtual entity."""
     result = {
@@ -35,19 +37,23 @@ def _serialize_virtual_entity(
     else:
         result["name"] = entity.device_class
 
+    if source_manager is not None:
+        result["source_count"] = len(source_manager.get_sources(entity.id))
+
     return result
 
 
 def _serialize_virtual_device(
     device,
     lifecycle_manager: VirtualDeviceLifecycleManager | None = None,
+    source_manager: SourceManager | None = None,
 ) -> dict:
     """Serialize one virtual device."""
     result = {
         "id": device.id,
         "label_ref": device.label_ref,
         "entities": [
-            _serialize_virtual_entity(entity, lifecycle_manager)
+            _serialize_virtual_entity(entity, lifecycle_manager, source_manager)
             for entity in device.entities
         ],
     }
@@ -63,10 +69,11 @@ def _serialize_virtual_device(
 def _serialize_virtual_devices(
     storage: VirtualDeviceStorage,
     lifecycle_manager: VirtualDeviceLifecycleManager | None = None,
+    source_manager: SourceManager | None = None,
 ) -> list[dict]:
     """Serialize virtual devices for the WebSocket API."""
     return [
-        _serialize_virtual_device(device, lifecycle_manager)
+        _serialize_virtual_device(device, lifecycle_manager, source_manager)
         for device in storage.get_virtual_devices()
     ]
 
@@ -144,6 +151,7 @@ async def async_register_websocket_commands(
                 "devices": _serialize_virtual_devices(
                     storage,
                     lifecycle_manager,
+                    source_manager,
                 ),
             },
         )
@@ -152,6 +160,76 @@ async def async_register_websocket_commands(
         hass,
         handle_get_virtual_devices,
     )
+
+    @websocket_api.websocket_command(
+        {
+            "type": "virtual_device/get_source_entities",
+            "device_id": str,
+            "entity_id": str,
+        }
+    )
+    @websocket_api.async_response
+    async def handle_get_source_entities(
+        hass: HomeAssistant,
+        connection: websocket_api.ActiveConnection,
+        msg: dict,
+    ) -> None:
+        """Return registry details for the current physical source entities."""
+        device = storage.get_virtual_device(msg["device_id"])
+        if device is None:
+            connection.send_error(msg["id"], "not_found", "Virtual device not found")
+            return
+
+        if not any(entity.id == msg["entity_id"] for entity in device.entities):
+            connection.send_error(msg["id"], "not_found", "Virtual entity not found")
+            return
+
+        entity_reg = entity_registry.async_get(hass)
+        device_reg = device_registry.async_get(hass)
+        sources = []
+
+        for source_entity_id in source_manager.get_sources(msg["entity_id"]):
+            registry_entry = entity_reg.async_get(source_entity_id)
+            state = hass.states.get(source_entity_id)
+            entity_name = (
+                getattr(registry_entry, "name", None)
+                or getattr(state, "name", None)
+                or source_entity_id
+            )
+
+            registry_device = None
+            if registry_entry is not None and registry_entry.device_id:
+                registry_device = device_reg.async_get(registry_entry.device_id)
+            device_name = (
+                getattr(registry_device, "name_by_user", None)
+                or getattr(registry_device, "name", None)
+                or "—"
+            )
+            sources.append(
+                {
+                    "entity_id": source_entity_id,
+                    "entity_name": entity_name,
+                    "device_name": device_name,
+                }
+            )
+
+        sources.sort(
+            key=lambda source: (
+                source["device_name"].casefold(),
+                source["entity_name"].casefold(),
+                source["entity_id"],
+            )
+        )
+        connection.send_result(
+            msg["id"],
+            {
+                "device_id": device.id,
+                "entity_id": msg["entity_id"],
+                "sources": sources,
+            },
+        )
+
+    websocket_api.async_register_command(hass, handle_get_source_entities)
 
     @websocket_api.websocket_command(
         {
@@ -417,9 +495,9 @@ async def async_register_websocket_commands(
                         "range_start": (
                             item.range_start.isoformat() if item.range_start else None
                         ),
-                        "range_end": item.range_end.isoformat()
-                        if item.range_end
-                        else None,
+                        "range_end": (
+                            item.range_end.isoformat() if item.range_end else None
+                        ),
                         "resolutions": list(item.resolutions),
                         "hourly_slots_upserted": item.hourly_slots_upserted,
                     }

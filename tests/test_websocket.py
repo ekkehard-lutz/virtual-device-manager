@@ -163,6 +163,145 @@ def test_serialize_virtual_devices() -> None:
     ]
 
 
+def test_serialize_virtual_devices_includes_runtime_source_counts() -> None:
+    """Include current SourceManager relationships without persisting them."""
+    storage = MagicMock()
+    source_manager = MagicMock()
+    storage.get_virtual_devices.return_value = [
+        VirtualDevice(
+            id="virtual-lighting",
+            label_ref="lighting",
+            entities=[
+                VirtualEntity("virtual-lighting_power", "power", "sum"),
+                VirtualEntity("virtual-lighting_energy", "energy", "sum"),
+            ],
+        )
+    ]
+    source_manager.get_sources.side_effect = lambda entity_id: (
+        ["sensor.left", "sensor.right"] if entity_id == "virtual-lighting_power" else []
+    )
+
+    result = _serialize_virtual_devices(storage, source_manager=source_manager)
+
+    assert result[0]["entities"][0]["source_count"] == 2
+    assert result[0]["entities"][1]["source_count"] == 0
+
+
+async def _get_source_handler(storage, source_manager):
+    """Register and return the source-details handler."""
+    with patch(
+        "custom_components.virtual_device.websocket.websocket_api.async_register_command"
+    ) as register_mock:
+        await async_register_websocket_commands(
+            MagicMock(), storage, source_manager, MagicMock()
+        )
+    return next(
+        call.args[1]
+        for call in register_mock.call_args_list
+        if call.args[1].__name__ == "handle_get_source_entities"
+    )
+
+
+@pytest.mark.asyncio
+async def test_get_source_entities_resolves_registry_names() -> None:
+    """Resolve entity and preferred device names from Home Assistant registries."""
+    device = VirtualDevice(
+        id="virtual-lighting",
+        label_ref="lighting",
+        entities=[VirtualEntity("virtual-lighting_power", "power", "sum")],
+    )
+    storage = MagicMock()
+    storage.get_virtual_device.return_value = device
+    source_manager = MagicMock()
+    source_manager.get_sources.return_value = ["sensor.left", "sensor.no_device"]
+    handler = await _get_source_handler(storage, source_manager)
+
+    left = MagicMock(name="left_entry")
+    left.name = "Power"
+    left.device_id = "device-left"
+    no_device = MagicMock(name="no_device_entry")
+    no_device.name = None
+    no_device.device_id = None
+    entity_reg = MagicMock()
+    entity_reg.async_get.side_effect = lambda entity_id: {
+        "sensor.left": left,
+        "sensor.no_device": no_device,
+    }[entity_id]
+    physical_device = MagicMock()
+    physical_device.name_by_user = "Kitchen left"
+    physical_device.name = "Default left"
+    device_reg = MagicMock()
+    device_reg.async_get.return_value = physical_device
+    hass = MagicMock()
+    fallback_state = MagicMock()
+    fallback_state.name = "Visible fallback"
+    hass.states.get.side_effect = lambda entity_id: (
+        fallback_state if entity_id == "sensor.no_device" else None
+    )
+    connection = MagicMock()
+
+    with (
+        patch(
+            "custom_components.virtual_device.websocket.entity_registry.async_get",
+            return_value=entity_reg,
+        ),
+        patch(
+            "custom_components.virtual_device.websocket.device_registry.async_get",
+            return_value=device_reg,
+        ),
+    ):
+        await handler.__wrapped__(
+            hass=hass,
+            connection=connection,
+            msg={
+                "id": 7,
+                "device_id": device.id,
+                "entity_id": device.entities[0].id,
+            },
+        )
+
+    result = connection.send_result.call_args.args[1]
+    assert {source["entity_id"] for source in result["sources"]} == {
+        "sensor.left",
+        "sensor.no_device",
+    }
+    by_id = {source["entity_id"]: source for source in result["sources"]}
+    assert by_id["sensor.left"]["entity_name"] == "Power"
+    assert by_id["sensor.left"]["device_name"] == "Kitchen left"
+    assert by_id["sensor.no_device"]["entity_name"] == "Visible fallback"
+    assert by_id["sensor.no_device"]["device_name"] == "—"
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("unknown", ["device", "entity"])
+async def test_get_source_entities_rejects_unknown_targets(unknown: str) -> None:
+    """Return not_found for an unknown device or unrelated virtual entity."""
+    storage = MagicMock()
+    storage.get_virtual_device.return_value = (
+        None
+        if unknown == "device"
+        else VirtualDevice(
+            id="virtual-lighting",
+            label_ref="lighting",
+            entities=[VirtualEntity("virtual-lighting_power", "power", "sum")],
+        )
+    )
+    handler = await _get_source_handler(storage, MagicMock())
+    connection = MagicMock()
+
+    await handler.__wrapped__(
+        hass=MagicMock(),
+        connection=connection,
+        msg={
+            "id": 8,
+            "device_id": "missing" if unknown == "device" else "virtual-lighting",
+            "entity_id": "missing",
+        },
+    )
+
+    assert connection.send_error.call_args.args[:2] == (8, "not_found")
+
+
 @pytest.mark.asyncio
 async def test_delete_virtual_device_websocket_command_is_registered() -> None:
     """Register the delete_virtual_device WebSocket command."""

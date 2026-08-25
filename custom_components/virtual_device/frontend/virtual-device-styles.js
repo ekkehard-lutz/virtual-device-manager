@@ -74,8 +74,43 @@ export function addStyles(component) {
     .device-header {
       display: flex;
       align-items: center;
-      justify-content: space-between;
       gap: 12px;
+      cursor: pointer;
+    }
+
+    .device-heading {
+      min-width: 0;
+      flex: 1;
+    }
+
+    .collapse-button {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+      width: 40px;
+      height: 40px;
+      padding: 0;
+      border: 0;
+      border-radius: 50%;
+      background: transparent;
+      color: var(--secondary-text-color);
+      cursor: pointer;
+    }
+
+    .collapse-button:focus-visible {
+      outline: 2px solid var(--primary-color);
+      outline-offset: 2px;
+    }
+
+    .device-entity-count {
+      margin-top: 2px;
+      color: var(--secondary-text-color);
+      font-size: 13px;
+    }
+
+    .hidden {
+      display: none !important;
     }
 
     .device-actions {
@@ -169,6 +204,21 @@ export function addStyles(component) {
       font-size: 13px;
     }
 
+    .source-count-button {
+      padding: 0;
+      border: 0;
+      background: transparent;
+      color: var(--primary-color);
+      font: inherit;
+      text-decoration: underline;
+      cursor: pointer;
+    }
+
+    .source-count-button:focus-visible {
+      outline: 2px solid var(--primary-color);
+      outline-offset: 2px;
+    }
+
     .entity-id {
       margin-top: 4px;
       color: var(--secondary-text-color);
@@ -252,6 +302,25 @@ export function addStyles(component) {
     .dialog-title {
       padding: 20px 20px 12px;
       font-size: 20px;
+      font-weight: 500;
+    }
+
+    .source-table {
+      width: 100%;
+      border-collapse: collapse;
+    }
+
+    .source-table th,
+    .source-table td {
+      padding: 10px 8px;
+      border-bottom: 1px solid var(--divider-color);
+      text-align: left;
+      overflow-wrap: anywhere;
+    }
+
+    .source-table th {
+      color: var(--secondary-text-color);
+      font-size: 13px;
       font-weight: 500;
     }
 
