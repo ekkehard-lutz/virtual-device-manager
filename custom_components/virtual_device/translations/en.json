@@ -96,7 +96,8 @@
             "sync_limitations": "Safe hourly upserts are used; obsolete historical hours are not deleted.",
             "hours_updated": "{count} hourly slots updated",
             "missing_translation": "Translation unavailable",
-            "load_sources_failed": "The assigned entities could not be loaded."
+            "load_sources_failed": "The assigned entities could not be loaded.",
+            "label_deleted": "Label deleted"
         },
         "counts": {
             "virtual_entity_count_one": "1 virtual entity",

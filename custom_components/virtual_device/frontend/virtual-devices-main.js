@@ -308,7 +308,8 @@ class VirtualDeviceManager
                 <span>${this._escape(name)}</span>
                 ${device.label_missing ? `
                   <ha-icon class="label-missing-warning" icon="mdi:alert"
-                    title="Label gelöscht" aria-label="Label gelöscht"></ha-icon>
+                    title="${this._escapeAttribute(this._t("messages.label_deleted"))}"
+                    aria-label="${this._escapeAttribute(this._t("messages.label_deleted"))}"></ha-icon>
                 ` : ""}
               </div>
               <div class="device-entity-count">${this._entityCount(entities.length, "virtual_entity")}</div>

@@ -1,448 +1,163 @@
-# Home Assistant Virtual Device Manager
+# Virtual Device Manager for Home Assistant
 
-A Home Assistant custom integration for creating and managing virtual devices and virtual sensor entities based on Home Assistant labels.
+Virtual Device Manager (VDM) creates virtual sensor devices in Home Assistant whose values are dynamically aggregated from source entities selected through Home Assistant labels. Source membership updates automatically when compatible entities are added to or removed from the referenced label.
 
-## Languages and entity names
+## Features
 
-The VDM panel supports English and German and follows the active Home Assistant
-user/frontend language. English is used when a language or individual message is
-not available. When a virtual entity is created without an explicit name, VDM
-resolves the device-class name in the current language and persists it in the Home
-Assistant Entity Registry. Later language changes do not rename existing entities,
-and an explicit user/registry name always takes precedence. Clearing a name in VDM
-resets it to the localized default for the currently selected device class.
-Language changes never alter virtual-device IDs, virtual-entity IDs, entity IDs,
-unique IDs, device classes, aggregations, or stored configuration. Additional
-languages can be added by supplying another integration translation resource.
+- Label-based Virtual Devices with multiple independently configured Virtual Entities
+- Dynamic source discovery and runtime updates without restarting Home Assistant
+- Stable Virtual Device, Virtual Entity, entity, and unique identities
+- Home Assistant Device Registry and Entity Registry integration
+- Configurable Virtual Device and Virtual Entity names
+- Energy, power, temperature, voltage, and electric-current sensors
+- Sum, average, minimum, maximum, and median aggregation
+- Compatible-unit normalization before aggregation
+- Localized management panel with English and German support
+- Manual history synchronization to Home Assistant long-term statistics
+- Source counts and on-demand source-entity details
+- Warning when a referenced Home Assistant label no longer exists
+- Administrator-only management panel and WebSocket API
 
-The panel keeps the existing ES-module loading scheme. After an integration
-update, a normal Home Assistant frontend reload is expected; if a browser retains
-older modules across the update, perform a hard reload. No cache-busting loader
-refactor is included in this beta.
-
-## History synchronization (Home Assistant 2026.8)
-
-History synchronization is an explicit per-Virtual-Device action. It freezes the
-currently assigned physical source entities and calculates raw, aligned
-five-minute, and aligned hourly virtual history with the same aggregation and unit
-conversion semantics used by live entities.
-
-Home Assistant Core 2026.8 supports reading all three resolutions and importing
-hourly internal statistics through `async_import_statistics()`. It does not expose
-supported public integration APIs for importing historical raw states, importing
-five-minute statistics, or atomically replacing a selected statistics range.
-Consequently VDM V1 persists hourly long-term statistics only. Re-synchronization
-uses safe hourly upserts: recalculated slots are inserted or updated, while an
-obsolete old slot absent from the new result cannot safely be removed. VDM never
-uses direct Recorder SQL, fabricated historical events, private table-specific
-imports, or destructive clear-and-reimport behavior.
-
-## Supported virtual sensors and aggregations
-
-VDM supports energy (`Wh`), power (`W`), temperature (`°C`), voltage (`V`),
-and electric current (`A`) virtual sensors. Compatible source units are
-normalized through Home Assistant's unit converters before aggregation;
-electrical SI-scaled units are supported as well.
-
-Available aggregations are sum, average (`avg`), minimum, maximum, and median.
-Median is useful for representative values that should resist an outlier. For
-example, an `Indoor Temperature` virtual entity using `device_class:
-temperature` and `aggregation: median` is much less affected by one sensor
-temporarily heated by direct sunlight.
-
-## Status
-
-**Version: 0.3.0-beta.2**
-
-The first release of the Virtual Device Manager.
-
-The integration creates virtual devices whose source entities are selected through an existing Home Assistant label. Virtual devices and virtual entities are managed independently from the labels themselves.
-
-## Concept
+## How it works
 
 ```text
 Home Assistant Label
         │
-        │ label_ref
+        │ selects source entities
         ▼
 Virtual Device
         │
-        ├── Virtual Entity
-        ├── Virtual Entity
-        └── Virtual Entity
+        ├── Virtual Entity (sum)
+        ├── Virtual Entity (average)
+        └── Virtual Entity (median)
 ```
 
-The label itself is **not managed by the Virtual Device Manager**. It can be created, renamed, assigned, or removed by Home Assistant or another integration.
-
-The Virtual Device Manager stores a reference to the selected label and uses entities carrying that label as source entities.
-
-### Stable virtual devices
-
-A virtual device has its own stable ID.
-
-Changing the label assigned to an existing virtual device does **not** change its virtual device ID.
-
-For example:
-
-```text
-Label: Beleuchtung
-        ↓
-Virtual Device ID: virtual_beleuchtung
-Name: Virtual Licht
-```
-
-If the label is subsequently renamed:
-
-```text
-Label: Licht
-        ↓
-Virtual Device ID: virtual_beleuchtung
-Name: Virtual Licht
-```
-
-The virtual device remains the same object.
-
-The device name is not automatically changed when the referenced Home Assistant label is renamed.
-
-### Stable virtual entities
-
-Virtual entity IDs are based on the stable virtual device ID.
-
-For example:
-
-```text
-Virtual Device:
-    ID: virtual_beleuchtung
-
-Virtual Entity:
-    ID: virtual_beleuchtung_power
-```
-
-Renaming the referenced Home Assistant label therefore does not change existing virtual entity IDs.
-
-### Virtual devices without entities
-
-A virtual device can exist without any virtual entities.
-
-Creating the device and creating its entities are independent operations.
-
-If the last virtual entity of a device is deleted, the virtual device itself remains available.
-
-### Labels are independent
-
-The Virtual Device Manager does not own the Home Assistant label.
-
-Deleting a virtual device does not delete its referenced Home Assistant label.
-
-Likewise, changing or deleting a Home Assistant label does not implicitly delete the virtual device configuration.
-
-## Features
-
-- Create and manage virtual devices
-- Use an existing Home Assistant label as the source for a virtual device
-- Create multiple virtual sensor entities per virtual device
-- Configure the aggregation method of each virtual entity
-- Supported aggregations:
-  - `sum`
-  - `avg`
-  - `min`
-  - `max`
-- Configure sensor device class
-- Configure sensor unit
-- Configure entity names
-- Virtual devices can exist without entities
-- Virtual device IDs remain stable when labels are renamed
-- Existing virtual entity IDs remain stable
-- Virtual device names are independent from Home Assistant label names
-- Persistent storage of virtual device and entity configuration
-- Automatic updating of virtual sensors when source entities change
-- Home Assistant services for managing virtual devices
-- WebSocket API for the frontend
-- Dedicated Home Assistant sidebar panel
+VDM references, but does not own or manage, the Home Assistant label. The label determines which source entities are eligible. A Virtual Device can contain multiple Virtual Entities, each with its own sensor device class and aggregation method. VDM reconciles source relationships and reacts to source state changes, so matching label membership and sensor values are updated at runtime.
 
 ## Installation
 
 ### HACS
 
-The Virtual Device Manager can be installed through HACS.
-
-If the repository is not yet available in your HACS instance, add the GitHub repository as a custom repository:
-
-```text
-https://github.com/ekkehard-lutz/virtual-device-manager
-```
-
-Select **Integration** as the repository category and install **Virtual Device Manager**.
-
-After installation, restart Home Assistant if requested by HACS.
-
-Then add **Virtual Device Manager** through:
-
-```text
-Settings → Devices & services → Add integration
-```
+1. In HACS, search for **Virtual Device Manager** under integrations.
+2. If it is not listed, add `https://github.com/ekkehard-lutz/virtual-device-manager` as a custom repository with category **Integration**.
+3. Install the integration and restart Home Assistant when prompted.
+4. Go to **Settings → Devices & services → Add integration → Virtual Device Manager**.
 
 ### Manual installation
 
-Copy the integration directory:
+Copy `custom_components/virtual_device` from this repository to:
 
 ```text
-custom_components/virtual_device/
+/config/custom_components/virtual_device
 ```
 
-to:
+Restart Home Assistant, then add **Virtual Device Manager** from **Settings → Devices & services → Add integration**.
 
-```text
-/config/custom_components/virtual_device/
-```
+## Getting started
 
-Then restart Home Assistant and add **Virtual Device Manager** through the integrations page.
+1. Create a Home Assistant label such as `Lighting`.
+2. Assign the label to the source entities that should participate.
+3. Open **Virtual Device Manager** from the Home Assistant sidebar.
+4. Create a Virtual Device based on the `Lighting` label.
+5. Add a Virtual Entity with device class `power` and aggregation `sum`.
+6. Use the resulting Home Assistant sensor wherever you need the combined power value.
 
-## Configuration
+Adding or removing compatible entities from the label automatically changes the virtual sensor's sources. Each source must have the same sensor device class as the Virtual Entity and a compatible unit.
 
-After installation, add **Virtual Device Manager** through:
+## Supported sensor types
 
-```text
-Settings → Devices & services → Add integration
-```
+| Device class | Native unit |
+|---|---:|
+| `energy` | Wh |
+| `power` | W |
+| `temperature` | °C |
+| `voltage` | V |
+| `current` | A |
 
-The integration provides a dedicated **Virtual Device Manager** panel in the Home Assistant sidebar.
+Compatible source units are converted to the native unit before aggregation. This includes Home Assistant-supported units for these device classes and the electrical SI-scaled units handled by VDM.
 
-The panel is used to create and manage virtual devices and their virtual entities.
+## Aggregation methods
 
-## Virtual Devices
-
-A virtual device contains:
-
-- a stable virtual device ID
-- a name
-- a reference to a Home Assistant label
-- zero or more virtual entities
-
-The Home Assistant label determines which source entities are available to the virtual device.
-
-The label reference is stored internally as the Home Assistant label ID, not as the label's display name.
-
-This means that renaming a Home Assistant label does not break the relationship between the label and the virtual device.
-
-## Virtual Entities
-
-A virtual entity belongs to one virtual device.
-
-A virtual entity can define:
-
-- entity ID
-- name
-- device class
-- aggregation
-- unit
-
-The source values are obtained from entities associated with the virtual device's label.
-
-### Aggregation
-
-The following aggregation methods are supported:
-
-| Aggregation | Description |
+| Method | Result |
 |---|---|
-| `sum` | Sum all source values |
-| `avg` | Calculate the average of all source values |
-| `min` | Use the smallest source value |
-| `max` | Use the largest source value |
+| `sum` | Sum of all source values |
+| `avg` | Arithmetic average of all source values |
+| `min` | Smallest source value |
+| `max` | Largest source value |
+| `median` | Median source value |
 
-The resulting value is exposed as a Home Assistant sensor entity.
+## Virtual Devices and stable identities
 
-## Services
+A **Home Assistant label** selects source entities. A **Virtual Device** is the stable Home Assistant device created by VDM for that label reference. A **Virtual Entity** is an aggregated sensor belonging to the Virtual Device.
 
-The integration provides the following Home Assistant services under the `virtual_device` domain.
+Virtual Device and Virtual Entity identities do not depend on the label's current display name. Renaming a label therefore does not recreate the Virtual Device or its sensor entities. User-defined Virtual Device and Virtual Entity names can be changed independently without changing their stable identities.
 
-### `virtual_device.create_virtual_device`
+## Label lifecycle
 
-Creates a virtual device.
+- Deleting a Virtual Device does not delete its Home Assistant label.
+- Deleting a Home Assistant label does not delete or modify the Virtual Device or its Virtual Entities.
+- If the referenced label is missing, the VDM panel shows a red warning icon beside the Virtual Device name. Hovering over the icon indicates that the label has been deleted.
+- VDM retains the original label ID. It does not relink a new label by matching its display name.
+- If Home Assistant later provides the same referenced label ID again, the relationship is valid automatically.
 
-Required:
+## Names and localization
 
-```yaml
-label_ref: "label-id"
-```
+The VDM panel supports English and German and follows the active Home Assistant frontend language, with English as the fallback. When a Virtual Entity is created without a custom name, VDM stores the localized device-class name in the Home Assistant Entity Registry. Later language changes do not rename existing entities, and user-defined registry names take precedence. Virtual Device names are maintained through the Home Assistant Device Registry.
 
-Optional:
+## History synchronization
 
-```yaml
-name: "My Virtual Device"
-```
+History synchronization is started manually for one Virtual Device from the VDM panel. VDM first reconciles the currently applicable source entities, then calculates historical values for each Virtual Entity using its aggregation and unit-conversion rules.
 
-### `virtual_device.update_virtual_device`
+VDM writes hourly long-term statistics through Home Assistant's supported statistics import API. It does not write directly to the Recorder database. Historical raw states and five-minute statistics are used for calculation where available but are not written back because Home Assistant does not provide supported import APIs for them. Re-synchronization safely inserts or updates calculated hourly slots; obsolete slots that are no longer present in a later calculation are not removed.
 
-Updates an existing virtual device.
+## Administrator access
 
-Required:
+Virtual Device Manager is an administrator-only management interface. Only Home Assistant administrators can see the sidebar panel, and all VDM WebSocket management commands also require administrator privileges on the server. The resulting Virtual Entities are normal Home Assistant entities and follow Home Assistant's usual entity visibility and access behavior.
 
-```yaml
-device_id: "virtual_beleuchtung"
-```
+## Home Assistant integration
 
-Optional:
+Virtual Devices are registered in Home Assistant's Device Registry. Their Virtual Entities are normal sensor entities in the Entity Registry and can be used in:
 
-```yaml
-name: "Virtual Licht"
-label_ref: "another-label-id"
-```
-
-Changing `label_ref` does not change the virtual device ID.
-
-### `virtual_device.delete_virtual_device`
-
-Deletes a virtual device and its stored configuration.
-
-Required:
-
-```yaml
-device_id: "virtual_beleuchtung"
-```
-
-Deleting the virtual device does not delete the referenced Home Assistant label.
-
-## WebSocket API
-
-The frontend communicates with the integration through Home Assistant's WebSocket API.
-
-The following commands are provided:
-
-```text
-virtual_device/get_virtual_devices
-virtual_device/delete_virtual_device
-virtual_device/update_virtual_device
-virtual_device/add_virtual_entity
-virtual_device/update_virtual_entity
-virtual_device/delete_virtual_entity
-```
-
-These commands are intended primarily for the integrated frontend panel.
-
-## Home Assistant entities
-
-Virtual entities are exposed as Home Assistant sensor entities.
-
-Their Home Assistant device association uses the stable virtual device identifier.
-
-The integration does not create source entities. It only creates the virtual entities configured by the user.
-
-## Persistent storage
-
-Virtual Device Manager stores its configuration using Home Assistant's persistent storage mechanism.
-
-The stored configuration contains the virtual devices and their virtual entities.
-
-The Home Assistant label registry remains the source of truth for the referenced labels.
-
-## Development
-
-The project uses a Python virtual environment for development and testing.
-
-Activate the virtual environment:
-
-```bash
-source .venv/bin/activate
-```
-
-Run the complete test suite:
-
-```bash
-python -m pytest -q
-```
-
-The current test suite covers, among other things:
-
-- virtual device creation
-- virtual device updates
-- virtual device deletion
-- stable virtual device IDs
-- stable virtual entity IDs
-- virtual entity creation
-- virtual entity updates
-- virtual entity deletion
-- persistent storage
-- sensor creation and updates
-- source entity discovery
-- source value aggregation
-- validation
-- Home Assistant services
-- WebSocket commands
-- integration setup and unloading
-
-## Project structure
-
-```text
-virtual-device-manager/
-├── custom_components/
-│   └── virtual_device/
-│       ├── brand/
-│       ├── frontend/
-│       ├── translations/
-│       ├── __init__.py
-│       ├── aggregator.py
-│       ├── config_flow.py
-│       ├── const.py
-│       ├── coordinator.py
-│       ├── entity.py
-│       ├── exceptions.py
-│       ├── manifest.json
-│       ├── models.py
-│       ├── sensor.py
-│       ├── source_finder.py
-│       ├── source_manager.py
-│       ├── statistics.py
-│       ├── storage.py
-│       ├── strings.json
-│       ├── unit_converter.py
-│       ├── validation.py
-│       ├── virtual_device_manager.py
-│       ├── virtual_device_services.py
-│       ├── virtual_device_workflow.py
-│       └── websocket.py
-├── tests/
-├── .gitignore
-├── hacs.json
-├── LICENSE
-├── package.json
-├── pyproject.toml
-├── README.md
-└── requirements-dev.txt
-```
+- dashboards
+- automations
+- templates
+- long-term statistics
+- the Energy Dashboard when an energy sensor's characteristics meet Home Assistant's requirements
 
 ## Requirements
 
-- Home Assistant `2026.8.0` or newer
-- HACS for HACS-based installation
+- Home Assistant 2026.8.0 or newer
+- HACS only when using the HACS installation method
 
-## Roadmap
+## Troubleshooting
 
-### 0.1.x – Foundation and first stable release
+### VDM does not appear in the sidebar
 
-- Virtual device management
-- Virtual entity management
-- Label-based source selection
-- Persistent configuration
-- Virtual sensor aggregation
-- Home Assistant service API
-- WebSocket frontend API
+The active Home Assistant user must be an administrator. Also confirm that the integration was added under **Settings → Devices & services**.
 
-### Future releases
+### A Virtual Device shows a red warning icon
 
-Possible future improvements include:
+The referenced Home Assistant label no longer exists. VDM keeps the Virtual Device and its original label reference unchanged.
 
-- Additional virtual entity types
-- Additional aggregation methods
-- More configurable source selection
-- Improved frontend management
-- Additional statistics
-- More advanced virtual device functionality
+### A Virtual Entity shows `unknown` after startup
 
-The roadmap is intentionally kept open while the first stable releases are evaluated in practical Home Assistant installations.
+VDM reconciles source membership and current source states during startup. The Virtual Entity remains `unknown` when no matching source currently has a usable numeric value and compatible unit. Check the label assignments and the source entities' states, device classes, and units.
+
+### The frontend appears outdated after upgrading
+
+Reload the Home Assistant page. If the browser still serves older frontend files, perform a hard refresh.
+
+## Development
+
+Install the dependencies from `requirements-dev.txt`, then run:
+
+```bash
+python -m pytest -q
+ruff check .
+```
+
+The repository's validation workflow uses Python 3.12.
 
 ## License
 
-This project is licensed under the **MIT License**.
-
-See the `LICENSE` file for the complete license text.
+This project is licensed under the MIT License. See [LICENSE](LICENSE) for details.

@@ -96,7 +96,8 @@
             "sync_limitations": "Sichere st\u00fcndliche Upserts werden verwendet; obsolete alte Stunden werden nicht gel\u00f6scht.",
             "hours_updated": "{count} st\u00fcndliche Werte aktualisiert",
             "missing_translation": "\u00dcbersetzung nicht verf\u00fcgbar",
-            "load_sources_failed": "Die zugewiesenen Entit\u00e4ten konnten nicht geladen werden."
+            "load_sources_failed": "Die zugewiesenen Entit\u00e4ten konnten nicht geladen werden.",
+            "label_deleted": "Label gel\u00f6scht"
         },
         "counts": {
             "virtual_entity_count_one": "1 virtuelle Entit\u00e4t",

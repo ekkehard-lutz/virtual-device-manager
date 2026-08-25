@@ -49,6 +49,8 @@ def test_translation_resources_have_identical_complete_structure() -> None:
         for language in ("en", "de")
     }
     assert _keys(resources["en"]) == _keys(resources["de"])
+    assert resources["en"]["panel"]["messages"]["label_deleted"] == "Label deleted"
+    assert resources["de"]["panel"]["messages"]["label_deleted"] == "Label gelöscht"
     for language, resource in resources.items():
         assert set(resource["panel"]["device_classes"]) == DEVICE_CLASSES
         assert set(resource["panel"]["aggregations"]) == AGGREGATIONS
