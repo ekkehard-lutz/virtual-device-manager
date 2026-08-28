@@ -71,6 +71,8 @@ export async function addVirtualEntity(
     device_class: data.device_class,
     aggregation: data.aggregation,
     name: data.name,
+    include_filter: data.include_filter,
+    exclude_filter: data.exclude_filter,
   });
 
   return result.device;
@@ -88,6 +90,8 @@ export async function updateVirtualEntity(
     device_class: data.device_class,
     aggregation: data.aggregation,
     name: data.name,
+    include_filter: data.include_filter,
+    exclude_filter: data.exclude_filter,
   });
 
   return result.device;

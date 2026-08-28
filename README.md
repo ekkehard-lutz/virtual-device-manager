@@ -4,6 +4,42 @@ Virtual Device Manager (VDM) creates virtual sensor devices in Home Assistant wh
 
 ## Features
 
+### Virtual Entity source filters
+
+VDM first discovers the same base candidates as before: entities carrying the Virtual
+Device label, in the `sensor` domain, whose state `device_class` matches the Virtual
+Entity. Optional filters are then applied as `base AND include AND NOT exclude`.
+An empty include filter allows every base candidate; an empty exclude filter excludes
+nothing. Each filter can require **all** conditions or **any** condition.
+
+Fields are exact, case-sensitive dot paths in one of three namespaces:
+
+- `entity.*` reads the Home Assistant Entity Registry entry.
+- `device.*` reads its associated Device Registry entry.
+- `state.state` reads the state value, `state.attributes.*` reads explicit state
+  attributes, and direct paths such as `state.friendly_name` are convenient aliases
+  for state attributes.
+
+Nested mappings work naturally, for example
+`entity.options.sensor.suggested_display_precision`. Supported operators are
+`equals`, `not_equals`, `contains`, `not_contains`, `starts_with`, `ends_with`,
+`regex` (Python regular expressions), `is_empty`, and `is_not_empty`.
+
+Examples:
+
+```text
+Exclude: entity.entity_category | equals | diagnostic
+Include: device.manufacturer | equals | Shelly
+Include: entity.options.sensor.suggested_display_precision | equals | 1
+Include: entity.labels | contains | temperatur_aussen_entitat
+Include: entity.unique_id | regex | .*temperature:100.*
+```
+
+The edit dialog displays diagnostics from the latest reconciliation. It distinguishes
+no base candidates (not yet evaluable), a field that existed nowhere, and a condition
+whose field existed but never matched. Diagnostics are runtime-only and are rebuilt
+after startup; they never prevent saving a valid path for future integration metadata.
+
 - Label-based Virtual Devices with multiple independently configured Virtual Entities
 - Dynamic source discovery and runtime updates without restarting Home Assistant
 - Stable Virtual Device, Virtual Entity, entity, and unique identities

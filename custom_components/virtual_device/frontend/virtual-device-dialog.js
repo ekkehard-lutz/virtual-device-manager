@@ -7,6 +7,78 @@ import {
   synchronizeHistory,
   loadSourceEntities,
 } from "./virtual-device-api.js";
+
+const FILTER_OPERATORS = [
+  "equals", "not_equals", "contains", "not_contains", "starts_with",
+  "ends_with", "regex", "is_empty", "is_not_empty",
+];
+
+function filterEditorHtml(kind, filter, diagnostics, t) {
+  const current = filter || {mode: kind === "include" ? "all" : "any", conditions: []};
+  const noCandidates = diagnostics?.base_candidate_count === 0;
+  const rows = current.conditions.map((condition, index) => {
+    const diagnostic = diagnostics?.[kind]?.[index];
+    const fieldWarning = !noCandidates && diagnostic && !diagnostic.field_hit;
+    const valueWarning = !noCandidates && diagnostic?.field_hit && !diagnostic.rule_hit;
+    const valueless = condition.operator === "is_empty" || condition.operator === "is_not_empty";
+    return `<div class="filter-condition" data-index="${index}">
+      <input class="filter-field ${fieldWarning ? "filter-warning" : ""}" type="text"
+        value="${escapeAttribute(condition.field || "")}" placeholder="entity.entity_category"
+        title="${fieldWarning ? escapeAttribute(t("filters.attribute_not_found")) : ""}" />
+      <select class="filter-operator">${FILTER_OPERATORS.map((operator) =>
+        `<option value="${operator}" ${operator === condition.operator ? "selected" : ""}>${escapeHtml(t(`filters.operators.${operator}`))}</option>`
+      ).join("")}</select>
+      <input class="filter-value ${valueWarning ? "filter-warning" : ""}" type="text"
+        value="${escapeAttribute(condition.value ?? "")}" ${valueless ? "disabled" : ""}
+        title="${valueWarning ? escapeAttribute(t("filters.condition_not_matched")) : ""}" />
+      <button type="button" class="remove-filter-condition" title="${escapeAttribute(t("filters.remove"))}">×</button>
+    </div>`;
+  }).join("");
+  return `<section class="filter-editor" data-kind="${kind}">
+    <h3>${t(`filters.${kind}_title`)}</h3>
+    <label>${t("filters.match")}
+      <select class="filter-mode"><option value="all" ${current.mode === "all" ? "selected" : ""}>${t("filters.all")}</option>
+      <option value="any" ${current.mode === "any" ? "selected" : ""}>${t("filters.any")}</option></select>
+    </label>
+    ${noCandidates ? `<div class="filter-neutral">${t("filters.no_candidates")}</div>` : ""}
+    <div class="filter-conditions">${rows}</div>
+    <button type="button" class="add-filter-condition">+ ${t("filters.add")}</button>
+  </section>`;
+}
+
+function setupFilterEditors(dialog, t) {
+  dialog.querySelectorAll(".filter-editor").forEach((editor) => {
+    const conditions = editor.querySelector(".filter-conditions");
+    const bindRow = (row) => {
+      row.querySelector(".remove-filter-condition").addEventListener("click", () => row.remove());
+      row.querySelector(".filter-operator").addEventListener("change", (event) => {
+        row.querySelector(".filter-value").disabled = ["is_empty", "is_not_empty"].includes(event.target.value);
+      });
+    };
+    conditions.querySelectorAll(".filter-condition").forEach(bindRow);
+    editor.querySelector(".add-filter-condition").addEventListener("click", () => {
+      const wrapper = document.createElement("div");
+      wrapper.innerHTML = filterEditorHtml(editor.dataset.kind, {mode: "all", conditions: [{field: "", operator: "equals", value: ""}]}, null, t);
+      const row = wrapper.querySelector(".filter-condition");
+      conditions.appendChild(row);
+      bindRow(row);
+      row.querySelector(".filter-field").focus();
+    });
+  });
+}
+
+function collectFilter(dialog, kind) {
+  const editor = dialog.querySelector(`.filter-editor[data-kind="${kind}"]`);
+  return {
+    mode: editor.querySelector(".filter-mode").value,
+    conditions: [...editor.querySelectorAll(".filter-condition")].map((row) => {
+      const operator = row.querySelector(".filter-operator").value;
+      const condition = {field: row.querySelector(".filter-field").value.trim(), operator};
+      if (!["is_empty", "is_not_empty"].includes(operator)) condition.value = row.querySelector(".filter-value").value;
+      return condition;
+    }),
+  };
+}
 import {resolveEntityName} from "./virtual-device-translations.js";
 
 
@@ -476,6 +548,9 @@ export async function openCreateVirtualEntityDialog(
             .join("")}
         </select>
 
+        ${filterEditorHtml("include", null, null, t)}
+        ${filterEditorHtml("exclude", null, null, t)}
+
       </div>
 
       <div class="dialog-actions">
@@ -514,6 +589,7 @@ export async function openCreateVirtualEntityDialog(
     dialog.querySelector(
       ".entity-aggregation-select",
     );
+  setupFilterEditors(dialog, t);
 
   const updateNamePlaceholder = () => {
     nameInput.placeholder = t(`device_classes.${deviceClassSelect.value}`);
@@ -570,6 +646,8 @@ export async function openCreateVirtualEntityDialog(
               device_class: deviceClass,
               aggregation,
               name: resolveEntityName(name, deviceClass, t),
+              include_filter: collectFilter(dialog, "include"),
+              exclude_filter: collectFilter(dialog, "exclude"),
             },
           );
 
@@ -679,6 +757,9 @@ export async function openEditVirtualEntityDialog(
             .join("")}
         </select>
 
+        ${filterEditorHtml("include", entity.include_filter, entity.filter_diagnostics, t)}
+        ${filterEditorHtml("exclude", entity.exclude_filter, entity.filter_diagnostics, t)}
+
       </div>
 
       <div class="dialog-actions">
@@ -722,6 +803,7 @@ export async function openEditVirtualEntityDialog(
     dialog.querySelector(
       ".entity-device-class-select",
     );
+  setupFilterEditors(dialog, t);
 
   const updateNamePlaceholder = () => {
     nameInput.placeholder = t(`device_classes.${deviceClassSelect.value}`);
@@ -770,6 +852,8 @@ export async function openEditVirtualEntityDialog(
               device_class: deviceClass,
               aggregation,
               name: resolveEntityName(name, deviceClass, t),
+              include_filter: collectFilter(dialog, "include"),
+              exclude_filter: collectFilter(dialog, "exclude"),
             },
           );
 

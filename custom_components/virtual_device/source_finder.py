@@ -6,6 +6,8 @@ from homeassistant.core import HomeAssistant
 from homeassistant.helpers import entity_registry as er
 
 from .aggregator import SourceValue
+from .models import VirtualEntity
+from .source_filter import FilterDiagnostics, filter_source_entities
 
 
 def get_entities_for_label(
@@ -51,6 +53,7 @@ def get_source_entities(
     hass: HomeAssistant,
     label_ref: str,
     device_class: str,
+    virtual_entity: VirtualEntity | None = None,
 ) -> list[str]:
     """Return sensor entities matching label and device class."""
     source_entities: list[str] = []
@@ -66,13 +69,34 @@ def get_source_entities(
 
         source_entities.append(entity_id)
 
-    return source_entities
+    if virtual_entity is None:
+        return source_entities
+    return filter_source_entities(
+        hass,
+        source_entities,
+        virtual_entity.include_filter,
+        virtual_entity.exclude_filter,
+    )[0]
+
+
+def get_filtered_source_entities(
+    hass: HomeAssistant, label_ref: str, virtual_entity: VirtualEntity
+) -> tuple[list[str], FilterDiagnostics]:
+    """Return filtered sources plus latest-reconciliation diagnostics."""
+    base_candidates = get_source_entities(hass, label_ref, virtual_entity.device_class)
+    return filter_source_entities(
+        hass,
+        base_candidates,
+        virtual_entity.include_filter,
+        virtual_entity.exclude_filter,
+    )
 
 
 def get_source_values(
     hass: HomeAssistant,
     label_ref: str,
     device_class: str,
+    virtual_entity: VirtualEntity | None = None,
 ) -> list[SourceValue]:
     """Return numeric source values matching label and device class."""
     source_values: list[SourceValue] = []
@@ -81,6 +105,7 @@ def get_source_values(
         hass,
         label_ref,
         device_class,
+        virtual_entity,
     ):
         state = hass.states.get(entity_id)
 
