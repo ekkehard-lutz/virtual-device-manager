@@ -10,6 +10,33 @@ export function addStyles(component) {
       display: block;
     }
 
+    .panel-navigation {
+      box-sizing: border-box;
+      display: flex;
+      align-items: center;
+      min-height: calc(var(--header-height, 56px) + var(--safe-area-inset-top, 0px));
+      padding-top: var(--safe-area-inset-top, 0px);
+      padding-inline: var(--ha-space-2, 8px) var(--ha-space-4, 16px);
+      background: var(--app-header-background-color, var(--primary-color));
+      color: var(--app-header-text-color, white);
+      border-bottom: var(--app-header-border-bottom, none);
+    }
+
+    .panel-navigation-title {
+      min-width: 0;
+      margin-inline-start: var(--ha-space-2, 8px);
+      overflow: hidden;
+      font-size: var(--ha-font-size-l, 20px);
+      font-weight: var(--ha-font-weight-normal, 400);
+      line-height: var(--ha-line-height-condensed, 1.2);
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    .panel-navigation + ha-card .header .title {
+      display: none;
+    }
+
     .header {
       display: flex;
       align-items: center;
@@ -467,6 +494,14 @@ export function addStyles(component) {
 
       .entity-details {
         gap: 4px 12px;
+      }
+
+      .filter-condition {
+        grid-template-columns: minmax(0, 1fr);
+      }
+
+      .remove-filter-condition {
+        justify-self: end;
       }
     }
   `;
