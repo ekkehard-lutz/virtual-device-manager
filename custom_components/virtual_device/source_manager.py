@@ -8,7 +8,8 @@ from homeassistant.core import HomeAssistant
 
 from .aggregator import SourceValue
 from .models import VirtualDevice
-from .source_finder import get_source_entities, get_source_values
+from .source_filter import FilterDiagnostics, filter_source_entities
+from .source_finder import get_source_entities
 
 DEFAULT_RECONCILIATION_INTERVAL = 300
 
@@ -31,6 +32,7 @@ class SourceManager:
         # virtual entity. A source can therefore be shared by multiple
         # virtual entities without storing its value multiple times.
         self._source_values: dict[str, SourceValue] = {}
+        self._filter_diagnostics: dict[str, FilterDiagnostics] = {}
 
         # Interval for the optional periodic reconciliation.
         # 0 disables periodic reconciliation.
@@ -188,6 +190,18 @@ class SourceManager:
             if source_entity_id in self._source_values
         ]
 
+    def get_filter_diagnostics(self, virtual_entity_id: str) -> dict | None:
+        """Return latest runtime filter diagnostics, if reconciliation has run."""
+        diagnostics = self._filter_diagnostics.get(virtual_entity_id)
+        return diagnostics.as_dict() if diagnostics is not None else None
+
+    def _discover(self, hass, label_ref, virtual_entity):
+        """Discover base candidates, then apply the shared filter evaluator."""
+        base = get_source_entities(hass, label_ref, virtual_entity.device_class)
+        return filter_source_entities(
+            hass, base, virtual_entity.include_filter, virtual_entity.exclude_filter
+        )
+
     def update_source_value(
         self,
         source_value: SourceValue,
@@ -214,12 +228,14 @@ class SourceManager:
         self._sources_by_virtual_entity.clear()
         self._virtual_entities_by_source.clear()
         self._source_values.clear()
+        self._filter_diagnostics.clear()
         self._virtual_devices.clear()
 
     def remove_virtual_entity(self, virtual_entity_id: str) -> None:
         """Remove every source relationship for one virtual entity."""
         for source_entity_id in self.get_sources(virtual_entity_id):
             self.remove_source(virtual_entity_id, source_entity_id)
+        self._filter_diagnostics.pop(virtual_entity_id, None)
 
     def remove_virtual_device(self, device_id: str) -> None:
         """Remove all source relationships for one virtual device."""
@@ -246,11 +262,10 @@ class SourceManager:
             # Remove existing relationships first.
             self.remove_virtual_entity(virtual_entity_id)
 
-            source_entities = get_source_entities(
-                hass,
-                device.label_ref,
-                virtual_entity.device_class,
+            source_entities, diagnostics = self._discover(
+                hass, device.label_ref, virtual_entity
             )
+            self._filter_diagnostics[virtual_entity_id] = diagnostics
 
             for source_entity_id in source_entities:
                 self.add_source(
@@ -260,15 +275,25 @@ class SourceManager:
 
         # Rebuild cached values for the sources currently used by
         # this virtual device.
-        for virtual_entity in device.entities:
-            source_values = get_source_values(
-                hass,
-                device.label_ref,
-                virtual_entity.device_class,
-            )
+        self._rebuild_value_cache(hass)
 
-            for source_value in source_values:
-                self._source_values[source_value.entity_id] = source_value
+    def _rebuild_value_cache(self, hass: HomeAssistant) -> None:
+        """Rebuild numeric values only for the canonical filtered source set."""
+        reconciled_values: dict[str, SourceValue] = {}
+        for source_entity_id in self._virtual_entities_by_source:
+            state = hass.states.get(source_entity_id)
+            if state is None or state.state in ("unknown", "unavailable"):
+                continue
+            try:
+                value = float(state.state)
+            except (TypeError, ValueError):
+                continue
+            unit = state.attributes.get("unit_of_measurement")
+            if unit:
+                reconciled_values[source_entity_id] = SourceValue(
+                    entity_id=source_entity_id, value=value, unit=unit
+                )
+        self._source_values = reconciled_values
 
     async def async_reconcile(
         self,
@@ -284,13 +309,11 @@ class SourceManager:
 
                 current_sources = set(self.get_sources(virtual_entity_id))
 
-                discovered_sources = set(
-                    get_source_entities(
-                        hass,
-                        device.label_ref,
-                        virtual_entity.device_class,
-                    )
+                discovered, diagnostics = self._discover(
+                    hass, device.label_ref, virtual_entity
                 )
+                self._filter_diagnostics[virtual_entity_id] = diagnostics
+                discovered_sources = set(discovered)
 
                 removed_sources = current_sources - discovered_sources
                 added_sources = discovered_sources - current_sources
@@ -312,37 +335,7 @@ class SourceManager:
                         source_entity_id,
                     )
 
-        # Rebuild the value cache from the now-current relationships.
-        reconciled_values: dict[str, SourceValue] = {}
-
-        source_entity_ids = set(self._virtual_entities_by_source)
-
-        for source_entity_id in source_entity_ids:
-            state = hass.states.get(source_entity_id)
-
-            if state is None:
-                continue
-
-            if state.state in ("unknown", "unavailable"):
-                continue
-
-            try:
-                value = float(state.state)
-            except (TypeError, ValueError):
-                continue
-
-            unit = state.attributes.get("unit_of_measurement")
-
-            if not unit:
-                continue
-
-            reconciled_values[source_entity_id] = SourceValue(
-                entity_id=source_entity_id,
-                value=value,
-                unit=unit,
-            )
-
-        self._source_values = reconciled_values
+        self._rebuild_value_cache(hass)
 
         return sorted(changed_virtual_entity_ids)
 

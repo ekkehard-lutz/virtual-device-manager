@@ -705,6 +705,8 @@ async def test_add_virtual_entity_websocket_adds_entity() -> None:
                         "id": "virtual-energie_power",
                         "device_class": "power",
                         "aggregation": "sum",
+                        "include_filter": {"mode": "all", "conditions": []},
+                        "exclude_filter": {"mode": "any", "conditions": []},
                         "name": "power",
                     }
                 ],
@@ -815,6 +817,8 @@ async def test_update_virtual_entity_websocket_updates_entity() -> None:
                         "id": "virtual-energie_power",
                         "device_class": "power",
                         "aggregation": "avg",
+                        "include_filter": {"mode": "all", "conditions": []},
+                        "exclude_filter": {"mode": "any", "conditions": []},
                         "name": "power",
                     }
                 ],

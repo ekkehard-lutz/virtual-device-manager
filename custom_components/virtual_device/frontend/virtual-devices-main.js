@@ -30,6 +30,24 @@ import {
 class VirtualDeviceManager
   extends HTMLElement {
 
+  set narrow(narrow) {
+    const nextNarrow = Boolean(narrow);
+
+    if (this._narrow === nextNarrow) {
+      return;
+    }
+
+    this._narrow = nextNarrow;
+
+    if (this._t) {
+      this._render();
+    }
+  }
+
+  get narrow() {
+    return this._narrow || false;
+  }
+
   set hass(hass) {
     this._hass = hass;
     const language = hass.language || "en";
@@ -97,6 +115,7 @@ class VirtualDeviceManager
         `;
 
     this.innerHTML = `
+      ${this._panelHeader()}
       <ha-card>
         <div class="header">
           <div class="title">
@@ -274,6 +293,22 @@ class VirtualDeviceManager
           },
         );
       });
+  }
+
+
+  _panelHeader() {
+    if (!this.narrow) {
+      return "";
+    }
+
+    return `
+      <div class="panel-navigation">
+        <ha-menu-button></ha-menu-button>
+        <div class="panel-navigation-title">
+          ${this._escape(this._t?.("title") || "Virtual Device Manager")}
+        </div>
+      </div>
+    `;
   }
 
 
@@ -803,6 +838,7 @@ class VirtualDeviceManager
 
   _setLoading() {
     this.innerHTML = `
+      ${this._panelHeader()}
       <ha-card>
         <div class="header">
           <div class="title">
@@ -827,6 +863,7 @@ class VirtualDeviceManager
     );
 
     this.innerHTML = `
+      ${this._panelHeader()}
       <ha-card>
         <div class="header">
           <div class="title">

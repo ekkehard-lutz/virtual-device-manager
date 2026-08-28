@@ -133,6 +133,29 @@
             "min": "Minimum",
             "max": "Maximum",
             "median": "Median"
+        },
+        "filters": {
+            "include_title": "Einschlussfilter",
+            "exclude_title": "Ausschlussfilter",
+            "match": "Treffer:",
+            "all": "Alle Bedingungen",
+            "any": "Eine Bedingung",
+            "add": "Bedingung hinzufügen",
+            "remove": "Bedingung entfernen",
+            "no_candidates": "Der Filter konnte nicht ausgewertet werden, weil keine Basiskandidaten vorhanden waren.",
+            "attribute_not_found": "Das Attribut wurde beim letzten Quellenabgleich nicht gefunden.",
+            "condition_not_matched": "Die Bedingung traf beim letzten Quellenabgleich auf keinen Quellenkandidaten zu.",
+            "operators": {
+                "equals": "ist gleich",
+                "not_equals": "ist nicht gleich",
+                "contains": "enthält",
+                "not_contains": "enthält nicht",
+                "starts_with": "beginnt mit",
+                "ends_with": "endet mit",
+                "regex": "regulärer Ausdruck",
+                "is_empty": "ist leer",
+                "is_not_empty": "ist nicht leer"
+            }
         }
     }
 }

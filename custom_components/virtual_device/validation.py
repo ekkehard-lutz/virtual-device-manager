@@ -8,6 +8,7 @@ from homeassistant.components.sensor.const import (
 
 from .const import AGGREGATIONS, SUPPORTED_DEVICE_CLASSES
 from .models import VirtualDevice, VirtualEntity
+from .source_filter import validate_filter
 from .unit_converter import KILOAMPERE, KILOVOLT
 
 
@@ -30,6 +31,12 @@ def validate_virtual_entity(entity: VirtualEntity) -> None:
 
     if not is_valid_aggregation(entity.aggregation):
         raise ValidationError(f"Unsupported aggregation: {entity.aggregation}")
+
+    try:
+        validate_filter(entity.include_filter)
+        validate_filter(entity.exclude_filter)
+    except ValueError as err:
+        raise ValidationError(str(err)) from err
 
 
 def is_valid_unit_for_device_class(

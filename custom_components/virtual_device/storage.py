@@ -8,7 +8,25 @@ from homeassistant.core import HomeAssistant
 from homeassistant.helpers.storage import Store
 
 from .const import STORAGE_KEY, STORAGE_VERSION
-from .models import VirtualDevice, VirtualEntity
+from .models import FilterCondition, SourceFilter, VirtualDevice, VirtualEntity
+
+
+def _filter_to_dict(source_filter: SourceFilter) -> dict[str, Any]:
+    return {
+        "mode": source_filter.mode,
+        "conditions": [
+            {"field": item.field, "operator": item.operator, "value": item.value}
+            for item in source_filter.conditions
+        ],
+    }
+
+
+def _filter_from_dict(data: Any, default_mode: str) -> SourceFilter:
+    data = data if isinstance(data, dict) else {}
+    return SourceFilter(
+        mode=data.get("mode", default_mode),
+        conditions=[FilterCondition(**item) for item in data.get("conditions", [])],
+    )
 
 
 def _virtual_entity_to_dict(
@@ -18,6 +36,8 @@ def _virtual_entity_to_dict(
     return {
         "device_class": entity.device_class,
         "aggregation": entity.aggregation,
+        "include_filter": _filter_to_dict(entity.include_filter),
+        "exclude_filter": _filter_to_dict(entity.exclude_filter),
     }
 
 
@@ -30,6 +50,8 @@ def _virtual_entity_from_dict(
         id=entity_id,
         device_class=data["device_class"],
         aggregation=data["aggregation"],
+        include_filter=_filter_from_dict(data.get("include_filter"), "all"),
+        exclude_filter=_filter_from_dict(data.get("exclude_filter"), "any"),
     )
 
 
