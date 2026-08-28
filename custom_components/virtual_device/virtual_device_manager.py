@@ -4,7 +4,7 @@ from homeassistant.core import HomeAssistant
 from homeassistant.helpers import label_registry
 
 from .lifecycle import VirtualDeviceLifecycleManager
-from .models import VirtualDevice
+from .models import SourceFilter, VirtualDevice
 from .sensor import VirtualSensorManager
 from .source_manager import SourceManager
 from .storage import VirtualDeviceStorage
@@ -88,6 +88,8 @@ async def async_add_virtual_entity(
     aggregation: str,
     name: str | None = None,
     lifecycle_manager: VirtualDeviceLifecycleManager | None = None,
+    include_filter: SourceFilter | None = None,
+    exclude_filter: SourceFilter | None = None,
 ) -> VirtualDevice:
     """Add and persist a virtual entity."""
     device = storage.get_virtual_device(device_id)
@@ -95,10 +97,16 @@ async def async_add_virtual_entity(
     if device is None:
         raise ValueError(f"Virtual device '{device_id}' does not exist")
 
+    filter_kwargs = {}
+    if include_filter is not None:
+        filter_kwargs["include_filter"] = include_filter
+    if exclude_filter is not None:
+        filter_kwargs["exclude_filter"] = exclude_filter
     updated_device = add_virtual_entity(
         device=device,
         device_class=device_class,
         aggregation=aggregation,
+        **filter_kwargs,
     )
 
     await storage.async_save_virtual_device(updated_device)
@@ -147,6 +155,8 @@ async def async_update_virtual_entity(
     name: str | None = None,
     sensor_manager: VirtualSensorManager | None = None,
     lifecycle_manager: VirtualDeviceLifecycleManager | None = None,
+    include_filter: SourceFilter | None = None,
+    exclude_filter: SourceFilter | None = None,
 ) -> VirtualDevice:
     """Update and persist a virtual entity."""
     device = storage.get_virtual_device(device_id)
@@ -159,6 +169,8 @@ async def async_update_virtual_entity(
         entity_id=entity_id,
         device_class=device_class,
         aggregation=aggregation,
+        include_filter=include_filter,
+        exclude_filter=exclude_filter,
     )
 
     await storage.async_save_virtual_device(updated_device)

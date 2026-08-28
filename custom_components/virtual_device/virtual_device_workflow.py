@@ -3,7 +3,7 @@
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers import label_registry
 
-from .models import VirtualDevice, VirtualEntity
+from .models import SourceFilter, VirtualDevice, VirtualEntity
 from .validation import validate_virtual_entity
 
 
@@ -36,6 +36,8 @@ def create_virtual_entity(
     device: VirtualDevice,
     device_class: str,
     aggregation: str,
+    include_filter: SourceFilter | None = None,
+    exclude_filter: SourceFilter | None = None,
 ) -> VirtualEntity:
     """Create a new virtual entity."""
     entity_id = generate_virtual_entity_id(
@@ -48,6 +50,8 @@ def create_virtual_entity(
         id=entity_id,
         device_class=device_class,
         aggregation=aggregation,
+        include_filter=include_filter or SourceFilter(mode="all"),
+        exclude_filter=exclude_filter or SourceFilter(mode="any"),
     )
 
     validate_virtual_entity(entity)
@@ -59,12 +63,16 @@ def add_virtual_entity(
     device: VirtualDevice,
     device_class: str,
     aggregation: str,
+    include_filter: SourceFilter | None = None,
+    exclude_filter: SourceFilter | None = None,
 ) -> VirtualDevice:
     """Add a new virtual entity to a virtual device."""
     entity = create_virtual_entity(
         device=device,
         device_class=device_class,
         aggregation=aggregation,
+        include_filter=include_filter,
+        exclude_filter=exclude_filter,
     )
 
     return VirtualDevice(
@@ -83,6 +91,8 @@ def update_virtual_entity(
     *,
     device_class: str | None = None,
     aggregation: str | None = None,
+    include_filter: SourceFilter | None = None,
+    exclude_filter: SourceFilter | None = None,
 ) -> VirtualDevice:
     """Update an existing virtual entity."""
     existing_entity = next(
@@ -104,6 +114,8 @@ def update_virtual_entity(
         id=existing_entity.id,
         device_class=new_device_class,
         aggregation=new_aggregation,
+        include_filter=include_filter or existing_entity.include_filter,
+        exclude_filter=exclude_filter or existing_entity.exclude_filter,
     )
 
     validate_virtual_entity(updated_entity)

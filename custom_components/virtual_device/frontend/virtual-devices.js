@@ -5,6 +5,7 @@ class VirtualDeviceManagerBootstrap
     super();
 
     this._hass = undefined;
+    this._narrow = false;
     this._implementationLoaded = false;
     this._loading = false;
   }
@@ -22,6 +23,18 @@ class VirtualDeviceManagerBootstrap
 
   get hass() {
     return this._hass;
+  }
+
+  set narrow(narrow) {
+    this._narrow = Boolean(narrow);
+
+    if (this._implementationLoaded) {
+      this._applyNarrow(this._narrow);
+    }
+  }
+
+  get narrow() {
+    return this._narrow;
   }
 
   async _loadImplementation() {
@@ -70,6 +83,28 @@ class VirtualDeviceManagerBootstrap
           "hass",
         );
 
+      const narrowDescriptor =
+        Object.getOwnPropertyDescriptor(
+          Implementation.prototype,
+          "narrow",
+        );
+
+      if (
+        narrowDescriptor &&
+        narrowDescriptor.set
+      ) {
+        Object.defineProperty(
+          this,
+          "narrow",
+          {
+            configurable: true,
+            enumerable: false,
+            get: narrowDescriptor.get,
+            set: narrowDescriptor.set,
+          },
+        );
+      }
+
       if (
         hassDescriptor &&
         hassDescriptor.set
@@ -94,6 +129,11 @@ class VirtualDeviceManagerBootstrap
           this._hass,
         );
       }
+
+      narrowDescriptor?.set?.call(
+        this,
+        this._narrow,
+      );
 
     } catch (error) {
       console.error(
@@ -124,6 +164,19 @@ class VirtualDeviceManagerBootstrap
     descriptor?.set?.call(
       this,
       hass,
+    );
+  }
+
+  _applyNarrow(narrow) {
+    const descriptor =
+      Object.getOwnPropertyDescriptor(
+        this,
+        "narrow",
+      );
+
+    descriptor?.set?.call(
+      this,
+      narrow,
     );
   }
 }

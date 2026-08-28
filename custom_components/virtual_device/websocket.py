@@ -1,5 +1,6 @@
 """WebSocket API for the Virtual Device Manager."""
 
+import voluptuous as vol
 from homeassistant.components import websocket_api
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers import device_registry, entity_registry, label_registry
@@ -7,7 +8,9 @@ from homeassistant.helpers import device_registry, entity_registry, label_regist
 from .const import AGGREGATIONS, SUPPORTED_DEVICE_CLASSES
 from .history.manager import HistorySyncBusyError, HistorySyncManager
 from .lifecycle import VirtualDeviceLifecycleManager
+from .models import FilterCondition, SourceFilter
 from .sensor import VirtualSensorManager
+from .source_filter import FILTER_MODES, FILTER_OPERATORS
 from .source_manager import SourceManager
 from .storage import VirtualDeviceStorage
 from .translation import panel_translations
@@ -31,6 +34,10 @@ def _serialize_virtual_entity(
         "device_class": entity.device_class,
         "aggregation": entity.aggregation,
     }
+    if isinstance(entity.include_filter, SourceFilter):
+        result["include_filter"] = _serialize_filter(entity.include_filter)
+    if isinstance(entity.exclude_filter, SourceFilter):
+        result["exclude_filter"] = _serialize_filter(entity.exclude_filter)
 
     if lifecycle_manager is not None:
         result["name"] = lifecycle_manager.get_entity_name(entity.id)
@@ -39,8 +46,40 @@ def _serialize_virtual_entity(
 
     if source_manager is not None:
         result["source_count"] = len(source_manager.get_sources(entity.id))
+        result["filter_diagnostics"] = source_manager.get_filter_diagnostics(entity.id)
 
     return result
+
+
+def _serialize_filter(source_filter: SourceFilter) -> dict:
+    return {
+        "mode": source_filter.mode,
+        "conditions": [
+            {"field": item.field, "operator": item.operator, "value": item.value}
+            for item in source_filter.conditions
+        ],
+    }
+
+
+def _parse_filter(data: dict | None, default_mode: str) -> SourceFilter | None:
+    if data is None:
+        return None
+    return SourceFilter(
+        mode=data.get("mode", default_mode),
+        conditions=[FilterCondition(**item) for item in data.get("conditions", [])],
+    )
+
+
+FILTER_SCHEMA = {
+    vol.Required("mode"): vol.In(FILTER_MODES),
+    vol.Required("conditions"): [
+        {
+            vol.Required("field"): str,
+            vol.Required("operator"): vol.In(FILTER_OPERATORS),
+            vol.Optional("value"): object,
+        }
+    ],
+}
 
 
 def _serialize_virtual_device(
@@ -333,6 +372,8 @@ async def async_register_websocket_commands(
             "aggregation": str,
             "unit": str,
             "name": str,
+            vol.Optional("include_filter"): FILTER_SCHEMA,
+            vol.Optional("exclude_filter"): FILTER_SCHEMA,
         }
     )
     @websocket_api.async_response
@@ -352,6 +393,10 @@ async def async_register_websocket_commands(
             "aggregation": msg["aggregation"],
             "name": msg.get("name"),
         }
+        if "include_filter" in msg:
+            kwargs["include_filter"] = _parse_filter(msg["include_filter"], "all")
+        if "exclude_filter" in msg:
+            kwargs["exclude_filter"] = _parse_filter(msg["exclude_filter"], "any")
 
         if lifecycle_manager is not None:
             kwargs["lifecycle_manager"] = lifecycle_manager
@@ -382,6 +427,8 @@ async def async_register_websocket_commands(
             "device_class": str,
             "aggregation": str,
             "name": str,
+            vol.Optional("include_filter"): FILTER_SCHEMA,
+            vol.Optional("exclude_filter"): FILTER_SCHEMA,
         }
     )
     @websocket_api.async_response
@@ -400,6 +447,10 @@ async def async_register_websocket_commands(
             "aggregation": msg.get("aggregation"),
             "name": msg.get("name"),
         }
+        if "include_filter" in msg:
+            kwargs["include_filter"] = _parse_filter(msg["include_filter"], "all")
+        if "exclude_filter" in msg:
+            kwargs["exclude_filter"] = _parse_filter(msg["exclude_filter"], "any")
 
         if "device_class" in msg:
             kwargs["device_class"] = msg["device_class"]

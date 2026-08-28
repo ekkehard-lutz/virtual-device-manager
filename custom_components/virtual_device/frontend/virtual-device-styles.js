@@ -10,6 +10,33 @@ export function addStyles(component) {
       display: block;
     }
 
+    .panel-navigation {
+      box-sizing: border-box;
+      display: flex;
+      align-items: center;
+      min-height: calc(var(--header-height, 56px) + var(--safe-area-inset-top, 0px));
+      padding-top: var(--safe-area-inset-top, 0px);
+      padding-inline: var(--ha-space-2, 8px) var(--ha-space-4, 16px);
+      background: var(--app-header-background-color, var(--primary-color));
+      color: var(--app-header-text-color, white);
+      border-bottom: var(--app-header-border-bottom, none);
+    }
+
+    .panel-navigation-title {
+      min-width: 0;
+      margin-inline-start: var(--ha-space-2, 8px);
+      overflow: hidden;
+      font-size: var(--ha-font-size-l, 20px);
+      font-weight: var(--ha-font-weight-normal, 400);
+      line-height: var(--ha-line-height-condensed, 1.2);
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    .panel-navigation + ha-card .header .title {
+      display: none;
+    }
+
     .header {
       display: flex;
       align-items: center;
@@ -300,7 +327,7 @@ export function addStyles(component) {
     }
 
     .dialog {
-      width: min(500px, 100%);
+      width: min(800px, 100%);
       background: var(--card-background-color);
       color: var(--primary-text-color);
       border-radius: 12px;
@@ -345,6 +372,14 @@ export function addStyles(component) {
       font-size: 14px;
       color: var(--secondary-text-color);
     }
+
+    .filter-editor { margin-top: 12px; padding-top: 8px; border-top: 1px solid var(--divider-color); }
+    .filter-editor h3 { margin: 4px 0; font-size: 16px; }
+    .filter-condition { display: grid; grid-template-columns: minmax(150px, 2fr) minmax(130px, 1fr) minmax(120px, 2fr) 32px; gap: 6px; margin-top: 6px; }
+    .filter-condition input, .filter-condition select, .filter-mode { box-sizing: border-box; min-height: 38px; min-width: 0; padding: 6px; border: 1px solid var(--divider-color); border-radius: 4px; background: var(--primary-background-color); color: var(--primary-text-color); }
+    .filter-warning { font-style: italic; border-color: var(--warning-color, #ffa600) !important; }
+    .filter-neutral { color: var(--secondary-text-color); font-size: 13px; margin-top: 6px; }
+    .add-filter-condition, .remove-filter-condition { margin-top: 6px; border: 0; background: transparent; color: var(--primary-color); cursor: pointer; }
 
     .name-input,
     .label-select {
@@ -459,6 +494,14 @@ export function addStyles(component) {
 
       .entity-details {
         gap: 4px 12px;
+      }
+
+      .filter-condition {
+        grid-template-columns: minmax(0, 1fr);
+      }
+
+      .remove-filter-condition {
+        justify-self: end;
       }
     }
   `;

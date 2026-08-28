@@ -133,6 +133,29 @@
             "min": "Minimum",
             "max": "Maximum",
             "median": "Median"
+        },
+        "filters": {
+            "include_title": "Include filter",
+            "exclude_title": "Exclude filter",
+            "match": "Match:",
+            "all": "All conditions",
+            "any": "Any condition",
+            "add": "Add condition",
+            "remove": "Remove condition",
+            "no_candidates": "The filter could not be evaluated because there were no base candidates.",
+            "attribute_not_found": "Attribute was not found during the last source reconciliation.",
+            "condition_not_matched": "Condition did not match any source candidate during the last source reconciliation.",
+            "operators": {
+                "equals": "equals",
+                "not_equals": "does not equal",
+                "contains": "contains",
+                "not_contains": "does not contain",
+                "starts_with": "starts with",
+                "ends_with": "ends with",
+                "regex": "regular expression",
+                "is_empty": "is empty",
+                "is_not_empty": "is not empty"
+            }
         }
     }
 }
